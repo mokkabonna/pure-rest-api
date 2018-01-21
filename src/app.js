@@ -41,6 +41,8 @@ function cacheLayer(req, res, proxyResponse) {
   } else {
     if (isGet(req)) {
       cacheStore[req.path] = proxyResponse
+    } else if (isPut(req)) {
+      cacheStore[req.path] = buildFakeResponse(proxyResponse, req.body)
     }
   }
 }
@@ -48,19 +50,23 @@ function cacheLayer(req, res, proxyResponse) {
 var fakeStore = {}
 function persistLayer(req, res, proxyResponse) {
   if (!proxyResponse) {
-    var resource = fakeStore[req.path]
-    if (resource) {
+    if (fakeStore.hasOwnProperty(req.path)) {
+      var resource = fakeStore[req.path]
       if (isGet(req)) {
         res.send(resource)
       } else if (isPost(req)) {
         resource.push(req.body)
         res.location(req.path + '/' + resource.length)
         res.status(201).send(req.body)
+      } else if (isPut(req)) {
+        res.status(204)
+        res.send()
       }
     } else {
       if (isPut(req)) {
         fakeStore[req.path] = req.body
-        res.status(201).send()
+        res.status(201)
+        res.send()
       } else {
         res.status(404).send()
       }
@@ -68,8 +74,8 @@ function persistLayer(req, res, proxyResponse) {
   }
 }
 
-function buildFakeResponse(data) {
-  return {body: data}
+function buildFakeResponse(res, data) {
+  return {statusCode: res.statusCode, body: data}
 }
 
 function wrapRes(req, res, layersSoFar) {
@@ -79,12 +85,7 @@ function wrapRes(req, res, layersSoFar) {
 
 app.use(bodyParser.json())
 
-var resFunctions = [
-  'location',
-  'set',
-  'setHeader',
-  'status'
-]
+var resFunctions = ['location', 'set', 'setHeader', 'status']
 
 // Main controller
 app.use(function(req, res) {
@@ -95,12 +96,13 @@ app.use(function(req, res) {
   var returned
 
   layers.forEach(function(layer, i) {
-    if (sendCalled) return
+    if (sendCalled)
+      return
     var send = res.send
     res.send = function(data) {
       sendCalled = true
       layers.slice(0, i).reverse().forEach(function(layer) {
-        layer(req, undefined, buildFakeResponse(data))
+        layer(req, undefined, buildFakeResponse(res, data))
       })
       return send.call(res, data)
     }
