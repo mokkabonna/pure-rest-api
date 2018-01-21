@@ -30,6 +30,25 @@ const isPatch = req => req.method === 'PATCH'
 const invalidatesCache = req => invalidatesCacheVerbs.contains(req.method)
 
 //caching layer
+// TODO create a base class for a layer, like an interface
+// maybe something like this, for logging purposes
+//
+//
+// {
+//   name: 'cache'
+//   incoming: {
+//     GET: function() {},
+//     PUT: function() {}
+//   },
+//   outgoing: {
+//     GET: function() {},
+//     PUT: function() {}
+//   },
+// }
+//
+//
+// etc...
+
 function cacheLayer(req, res, proxyResponse) {
   if (!proxyResponse) {
     if (isGet(req)) {
