@@ -29,6 +29,9 @@ const isDelete = req => req.method === 'DELETE'
 const isPatch = req => req.method === 'PATCH'
 const invalidatesCache = req => invalidatesCacheVerbs.contains(req.method)
 
+// negotion layer
+// The recipient of the entity MUST NOT ignore any Content-* (e.g. Content-Range) headers that it does not understand or implement and MUST return a 501 (Not Implemented) response in such cases.
+
 //caching layer
 // TODO create a base class for a layer, like an interface
 // maybe something like this, for logging purposes
@@ -98,17 +101,25 @@ function buildFakeResponse(res, data) {
 }
 
 function wrapRes(req, res, layersSoFar) {
-
   return newRes
 }
 
-app.use(bodyParser.json())
 
 var resFunctions = ['location', 'set', 'setHeader', 'status']
 
+var middleWare = []
+
+app.use(bodyParser.text())
+app.post('/layers', function(req, res) {
+  var layer = new Function('req', 'res', 'proxyResponse', req.body)
+  middleWare.push(layer)
+  res.status(201).send(req.body)
+})
+
+app.use(bodyParser.json())
 // Main controller
 app.use(function(req, res) {
-  var layers = [cacheLayer, persistLayer]
+  var layers = [cacheLayer, ...middleWare, persistLayer]
   var returnLayers = layers.slice(0)
 
   var sendCalled
