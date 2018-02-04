@@ -1,0 +1,44 @@
+doctype html
+html(lang="en")
+  head
+    title Pure rest api
+    link(rel="stylesheet" href="/css/main.css")
+    script(type="text/javascript" src="/js/client.js")
+  body
+    aside.meta
+      h1 Meta information
+      table
+        tbody
+          each val, key in resource.meta
+            tr
+              th=key
+              td=val
+    main
+      h1 Data
+      pre= JSON.stringify(resource.data, null, 2)
+    nav.links
+      h1 Links
+      ul
+        each link in resource.links
+          li
+            if link.rel === 'self'
+              a(href=link.href)=link.title||"This resource"
+            else
+              a(href=link.href)=link.title||link.href
+    section.actions
+      h1 Actions
+      form(onsubmit="client.addRelation(event)")
+        h1 Add relation
+        input(type="hidden" name="uri" value=uri.href)
+        div
+          label Relation type
+            select(name="rel")
+              option(value="item") Item
+        div
+          label The target URI
+            input(name="href")
+        div
+          button Add
+            
+        
+  

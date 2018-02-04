@@ -41,9 +41,9 @@ Then the representation looks like this:
 
 For PUT operations on a resource using the default media type, you need to supply the full object as defined above.
 
-For most resources, that is not possible as some values are set by the system itself. You normally just want to update the data itself. Then use the raw media type.
+For most resources, that is not possible as some values are set by the system itself. You normally just want to update the data itself. Then use the raw data media type.
 
-## Raw
+## Raw data
 
 For operating on only the data with PUT, you need to use the application/vnd.tbd.data+json media type.
 

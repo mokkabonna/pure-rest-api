@@ -1,0 +1,46 @@
+html {
+  box-sizing: border-box;
+  font-family: Arial;
+  font-size: 14px;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+body {
+  font-size: 1.5em;
+}
+
+nav.links h1, section.actions h1 {
+  font-size: 150%;
+}
+
+aside.meta {
+  float: right;
+  background-color: lightblue;
+  font-size: 75%;
+  padding: 10px;
+}
+
+aside.meta h1 {
+  font-size: 120%;
+  margin: 0 0 10px;
+}
+
+aside.meta table th {
+  text-align: left;
+}
+
+section.actions form h1 {
+  font-size: 120%;
+}
+
+form label {
+  font-weight: bold;
+}
+
+form label input, form label select{
+  display: block;
+  font-size: 100%;;
+}

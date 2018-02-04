@@ -1,0 +1,21 @@
+doctype html
+html(lang="en")
+  head
+    title Pure rest api
+    link(rel="stylesheet" href="/css/main.css")
+    script(type="text/javascript" src="/js/client.js")
+  body
+    main
+      h1 Welcome to the pure rest api
+      p Here are my resources:
+      ul
+        each val, name in resources
+          li
+            a(href=name)=name
+      form(onsubmit="client.createResource(event)")
+        h1 Create a new resource
+        p This can be a singleton resource or a collection of resources.
+        label URI to the resource<br>
+          input(name="uri" placeholder="e.g. /products")
+        div
+          button  Create
