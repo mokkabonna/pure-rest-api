@@ -1,6 +1,10 @@
+'use strict'
 var express = require('express')
 var bodyParser = require('body-parser')
 var _ = require('lodash')
+var axios = require('axios')
+var uriTemplates = require('uri-templates')
+var pug = require('pug')
 
 const app = express()
 
@@ -29,6 +33,21 @@ const isDelete = req => req.method === 'DELETE'
 const isPatch = req => req.method === 'PATCH'
 const invalidatesCache = req => invalidatesCacheVerbs.contains(req.method)
 
+var clientCache = {}
+
+function createClient(req) {
+  var base = req.protocol + '://' + req.get('host')
+  return {
+    get(url) {
+      return axios.get(base + url)
+    }
+  }
+}
+
+
+
+
+
 // negotion layer
 // The recipient of the entity MUST NOT ignore any Content-* (e.g. Content-Range) headers that it does not understand or implement and MUST return a 501 (Not Implemented) response in such cases.
 
@@ -56,7 +75,7 @@ function cacheLayer(req, res, proxyResponse) {
   if (!proxyResponse) {
     if (isGet(req)) {
       var cached = cacheStore[req.path]
-      if (cached) {
+      if (cached && cached.headers && req.headers.accept === cached.headers['content-type']) {
         res.status(200).send(cached.body)
       }
     }
@@ -97,33 +116,91 @@ function persistLayer(req, res, proxyResponse) {
 }
 
 function buildFakeResponse(res, data) {
-  return {statusCode: res.statusCode, body: data}
+  return {statusCode: res.statusCode, body: data, headers: res.headers}
 }
 
 function wrapRes(req, res, layersSoFar) {
   return newRes
 }
 
+function authLayer(req, res, proxyResponse, client) {
+  if (!proxyResponse) {
+    let auth = req.headers.authenticated
+     var url = '/auth' + req.path 
+     return client.get(url).then(function (response) {
+        if (!auth && response.data) {
+         res.status(401).send() 
+        } else {
+         
+        }
+      }).catch(function (err) {
+        if(err.response.status === 404){
+          return 
+        }else {
+          throw err
+        }
+      })
+    
+  } else {
+    
+  }
+}
+
 
 var resFunctions = ['location', 'set', 'setHeader', 'status']
 
-var middleWare = []
+app.use(bodyParser.json())
 
-app.use(bodyParser.text())
-app.post('/layers', function(req, res) {
-  var layer = new Function('req', 'res', 'proxyResponse', req.body)
-  middleWare.push(layer)
+var authStore = {
+  '/users': {
+    GET: ['https://some.com/user/test']
+  }
+}
+
+app.get('/auth(/*)', function(req, res) {
+  var rules = authStore[req.params[0]]
+  if(!rules) {
+    res.status(404).send()
+  } else {
+    res.send(rules)
+  }
+})
+
+var mediaTypeHandlers = []
+
+function mediaTypeLayer(req, res, proxyResponse) {
+  if(proxyResponse) {
+    var handler = mediaTypeHandlers.find(function(handler) {
+      return handler.template.test(req.path)
+    })
+    
+    req.method
+    if(handler && isGet(req)) {
+      var result = handler.code(proxyResponse.body, pug)
+      console.log(result, proxyResponse)
+    }
+  }
+}
+
+app.post('/media-types', function(req, res) {
+  
+  req.body.template = uriTemplates(req.body.urlTemplate)
+  req.body.code = new Function('data', 'resources', req.body.code)
+  mediaTypeHandlers.push(req.body)
   res.status(201).send(req.body)
 })
 
-app.use(bodyParser.json())
 // Main controller
 app.use(function(req, res) {
-  var layers = [cacheLayer, ...middleWare, persistLayer]
+  
+  var layers = [cacheLayer]
   var returnLayers = layers.slice(0)
 
   var sendCalled
   var returned
+  var client = createClient(req)
+  
+  var currentPromise = Promise.resolve()
 
   layers.forEach(function(layer, i) {
     if (sendCalled)
@@ -132,12 +209,13 @@ app.use(function(req, res) {
     res.send = function(data) {
       sendCalled = true
       layers.slice(0, i).reverse().forEach(function(layer) {
-        layer(req, undefined, buildFakeResponse(res, data))
+        layer(req, undefined, buildFakeResponse(res, data), client)
       })
       return send.call(res, data)
     }
 
-    layer(req, res)
+    layer(req, res, null, client)
+    
   })
 
 })

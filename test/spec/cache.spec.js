@@ -9,6 +9,7 @@ describe('something', function() {
   var req
   beforeEach(function() {
     const app = requireUncached('../../src/app')
+    const origin = requireUncached('../../src/origin-server')
     req = chai.request(app)
   })
 
