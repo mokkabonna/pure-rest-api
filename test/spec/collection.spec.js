@@ -6,28 +6,31 @@ const expect = chai.expect
 
 chai.use(chaiHttp)
 
-describe('gateway', function() {
+describe('collection', function() {
   var req
   var origReq
   var origin
   var server
   beforeEach(function() {
     origin = requireUncached('../../src/origin-server')
-    const gateway = requireUncached('../../src/gateway')
-    server = origin.listen(3333)
-    req = chai.request(gateway)
+    const collection = requireUncached('../../src/collection')
+    server = origin.listen(3340)
+    req = chai.request(collection)
   })
 
   afterEach(function() {
     server.close()
   })
 
-  describe('PUT', function() {
+  describe('POST', function() {
     it('persists at origin server', function() {
-      return req.put('/foo').send('7').then(function(res) {
+      return req.post('/collections').send({
+        url: '/posts{/id}'
+      }).then(function(res) {
         expect(res).to.have.status(201)
-        return req.get('/foo').then(function(res) {
-          expect(res).to.have.status(200)
+        expect(res).to.have.header('location', 'http://127.0.0.1:3340/posts')
+        return req.post('/posts').then(function(res) {
+          expect(res).to.have.status(201)
           expect(res.text).to.eql('7')
         })
       })

@@ -24,10 +24,10 @@ app.use(bodyParser.text({
 }))
 
 app.get('*', function (req, res) {
-  console.log(req.headers)
   var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   if (hasResource && resource !== undefined) {
+    res.set('content-type', 'application/json')
     res.send(resource)
   } else if (hasResource && resource === undefined) {
     res.status(410).send()
@@ -42,7 +42,7 @@ app.put('*', function (req, res) {
   if (hasResource) {
     res.status(204).send()
   } else {
-    res.status(201).send() 
+    res.status(201).send()
   }
 })
 

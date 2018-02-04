@@ -6,29 +6,36 @@ const expect = chai.expect
 
 chai.use(chaiHttp)
 
-describe('gateway', function() {
+describe('media type', function() {
   var req
   var origReq
   var origin
+  var mediaType
   var server
+  var server2
   beforeEach(function() {
     origin = requireUncached('../../src/origin-server')
+    mediaType = requireUncached('../../src/media-type')
     const gateway = requireUncached('../../src/gateway')
-    server = origin.listen(3333)
-    req = chai.request(gateway)
+    server = origin.listen(3340)
+    server2 = gateway.listen(3331)
+    req = chai.request(mediaType)
   })
 
   afterEach(function() {
     server.close()
+    server2.close()
   })
 
   describe('PUT', function() {
     it('persists at origin server', function() {
-      return req.put('/foo').send('7').then(function(res) {
+      return req.put('/foo').send({test:5}).then(function(res) {
         expect(res).to.have.status(201)
         return req.get('/foo').then(function(res) {
           expect(res).to.have.status(200)
-          expect(res.text).to.eql('7')
+          expect(res.body).to.eql({
+            test: 5
+          })
         })
       })
     })

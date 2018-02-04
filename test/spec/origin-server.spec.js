@@ -6,7 +6,7 @@ const expect = chai.expect
 
 chai.use(chaiHttp)
 
-describe('origin server', function() {
+describe.only('origin server', function() {
   var req
   beforeEach(function() {
     const app = requireUncached('../../src/origin-server')
@@ -35,7 +35,7 @@ describe('origin server', function() {
       })
     })
   })
-  
+
   describe('DELETE', function() {
     describe('when never existed', function() {
       it('returns 204', function() {
@@ -44,26 +44,26 @@ describe('origin server', function() {
         })
       })
     })
-    
+
     describe('when exists', function() {
       beforeEach(function() {
         return req.put('/foo').send('5')
       })
-      
+
       it('returns 200', function() {
         return req.delete('/foo').then(function(res) {
           expect(res).to.have.status(200)
         })
       })
     })
-    
+
     describe('when used to exist', function() {
       beforeEach(function() {
         return req.put('/foo').then(function () {
            return req.delete('/foo')
         })
       })
-      
+
       it('returns 204', function() {
         return req.delete('/foo').then(function(res) {
           expect(res).to.have.status(204)
@@ -71,7 +71,7 @@ describe('origin server', function() {
       })
     })
   })
-  
+
   describe('GET', function() {
     describe('when never existed', function() {
       it('returns 404', function() {
@@ -80,12 +80,12 @@ describe('origin server', function() {
         })
       })
     })
-    
+
     describe('when exists', function() {
       beforeEach(function() {
         return req.put('/foo').send('5')
       })
-      
+
       it('returns 200', function() {
         return req.get('/foo').then(function(res) {
           expect(res).to.have.status(200)
@@ -93,14 +93,14 @@ describe('origin server', function() {
         })
       })
     })
-    
+
     describe('when used to exist', function() {
       beforeEach(function() {
         return req.put('/foo').then(function () {
            return req.delete('/foo')
         })
       })
-      
+
       it('returns 410 gone', function() {
         return req.get('/foo').then(failIfSuccess, function(err) {
           expect(err.response).to.have.status(410)
