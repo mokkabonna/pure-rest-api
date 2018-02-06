@@ -12,8 +12,17 @@ body {
   font-size: 1.5em;
 }
 
-nav.links h1, section.actions h1 {
+main.data>h1{
+  border-bottom: solid 1px gray;
+}
+
+nav.links, section.actions{
+  margin-top: 40px;
+}
+
+nav.links>h1, section.actions>h1 {
   font-size: 150%;
+  border-bottom: solid 1px gray;
 }
 
 aside.meta {
@@ -40,7 +49,7 @@ form label {
   font-weight: bold;
 }
 
-form label input, form label select{
+form label input, form label select, form button{
   display: block;
-  font-size: 100%;;
+  font-size: 100%;
 }

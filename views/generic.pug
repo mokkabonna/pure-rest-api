@@ -13,18 +13,24 @@ html(lang="en")
             tr
               th=key
               td=val
-    main
+    main.data
       h1 Data
       pre= JSON.stringify(resource.data, null, 2)
     nav.links
       h1 Links
       ul
-        each link in resource.links
+        each link, index in resource.links
           li
             if link.rel === 'self'
-              a(href=link.href)=link.title||"This resource"
+              a(href=link.href rel=link.rel)=link.title || "This resource"
             else
-              a(href=link.href)=link.title||link.href
+              a(href=link.href rel=link.rel)=link.title || link.href
+              form(onsubmit="client.deleteRelation(event)")
+                input(type="hidden" name="uri" value=uri.href)
+                input(type="hidden" name="rel" value=link.rel)
+                input(type="hidden" name="href" value=link.href)
+                input(type="hidden" name="index" value=index)
+                button Delete relation
     section.actions
       h1 Actions
       form(onsubmit="client.addRelation(event)")

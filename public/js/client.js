@@ -47,6 +47,34 @@ var client = {
     }).then(function(data) {
       location.reload()
     })
+  },
+  deleteRelation(e) {
+    var data = this.formToJSON(e.target)
+    var path = '/links/' + data.index
+
+    fetch(data.uri, {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json-patch+json'
+      },
+      //Delete the relation if still in same location
+      body: JSON.stringify([
+        {
+          op: 'test',
+          path: path + '/rel',
+          value: data.rel
+        }, {
+          op: 'test',
+          path: path + '/href',
+          value: data.href
+        }, {
+          op: 'remove',
+          path: path
+        }
+      ])
+    }).then(function() {
+      location.reload()
+    })
   }
 }
 
