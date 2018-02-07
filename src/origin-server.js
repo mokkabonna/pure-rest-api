@@ -4,7 +4,66 @@ var bodyParser = require('body-parser')
 var jsonpatch = require('json-patch')
 const app = express()
 
-var fakeStore = {}
+var fakeStore = {
+  '/': {
+    meta: {
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      contentType: 'application/vnd.tbd.collection+json'
+    },
+    data: {},
+    links: [
+      {
+        rel: 'self',
+        href: '/'
+      }, {
+        rel: 'item',
+        title: 'All JSON schemas',
+        href: '/schemas'
+      }, {
+        rel: 'describedBy',
+        href: '/schemas/'
+      }
+    ]
+  },
+  '/schemas': {
+    meta: {
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      contentType: 'application/vnd.tbd.collection+json'
+    },
+    data: {},
+    links: [
+      {
+        rel: 'self',
+        href: '/schemas'
+      }, {
+        rel: 'item',
+        title: 'Root schema',
+        href: '/schemas/'
+      }
+    ]
+  },
+  '/schemas/': createResource('/schemas/', {
+    $id: 'https://schema.example.com/schemas/',
+    $schema: 'http://json-schema.org/draft-07/hyper-schema#',
+    base: '',
+    links: [{
+      rel: 'self',
+      href: '',
+      submissionSchema: {
+        properties: {
+          schema: {
+            type: 'object'
+          }
+        }
+      }
+    }, {
+      rel: 'item',
+      href: 'schemas'
+    }]
+  })
+}
 var store = {
   has(key) {
     return fakeStore.hasOwnProperty(key)
@@ -45,11 +104,6 @@ app.use(bodyParser.json({
 }))
 
 app.get('*', function (req, res) {
-  if (req.originalUrl === '/') {
-    res.send(store.getAll())
-    return
-  }
-
   var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   if (hasResource && resource !== undefined) {
@@ -78,7 +132,6 @@ app.patch('*', function (req, res) {
   var resource = store.get(req.originalUrl)
 
   if (hasResource && resource !== undefined) {
-    console.log(req.body)
     jsonpatch.apply(resource, req.body)
     store.set(req.originalUrl, resource)
     res.status(200).send(resource)

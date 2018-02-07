@@ -15,7 +15,7 @@ html(lang="en")
               td=val
     main.data
       h1 Data
-      pre= JSON.stringify(items, null, 2)
+      pre= JSON.stringify(resource.data, null, 2)
     nav.links
       h1 Links
       table.links
@@ -49,10 +49,16 @@ html(lang="en")
         input(type="hidden" name="uri" value=uri.href)
         label Relation type
           select(name="rel")
-            option(value="item") Item
+            option(value="item") item
         label The target URI
           input(name="href")
         button Add
+      if isCollection
+        form(onsubmit="client.createCollection(event)" action=uri.href)
+          h1 Create collection
+          label The JSON hyper schema for the collection
+            textarea(name="schemaJson" rows="20")
+          button Create
             
         
   

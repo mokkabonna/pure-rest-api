@@ -15,16 +15,26 @@ var client = {
     e.preventDefault()
   },
   createCollection(e) {
-    fetch(e.target.uri.value, {
-      method: 'PUT',
+    var data = this.formToJSON(e.target)
+
+    fetch(e.target.action, {
+      method: 'POST',
       headers: {
-        'content-type': 'application/vnd.tbd.data+json'
+        'content-type': 'application/json'
       },
-      body: JSON.stringify([])
+      body: JSON.stringify(data)
     }).then(function(response) {
-      return response.json()
+      if (response.ok) {
+        return response.json()
+      } else {
+        return response.json().then(function(data) {
+          throw new Error('Request failed: ' + JSON.stringify(data))
+        })
+      }
     }).then(function(data) {
       location.reload()
+    }).catch(function(e) {
+      alert(e)
     })
 
     e.preventDefault()
@@ -32,9 +42,18 @@ var client = {
   formToJSON(form) {
     var data = new FormData(form)
     var json = {}
-
+    var jsonregexp = /Json$/
     data.forEach(function(val, key) {
-      json[key] = val
+      console.log(val)
+      if (jsonregexp.test(key)) {
+        try {
+          json[key.replace(jsonregexp, '')] = JSON.parse(val)
+        } catch (e) {
+          alert('invalid json')
+        }
+      }else {
+        json[key] = val
+      }
     })
 
     return json
