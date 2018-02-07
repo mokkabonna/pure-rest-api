@@ -1,5 +1,14 @@
 # Media types
 
+## All media types
+
+- text/html (no javascript, method overriding for html forms)
+- text/html with minimal javascript to support sending PUT etc
+- text/html with vue and generated client js code from hyper schemas (also generated form elements and vuelidate) 
+- application/json and application/vnd.tbd+json (same)
+
+
+
 ## default media type
 The base media type is application/json. This is also the result of the media type application/vnd.tbd+json
 

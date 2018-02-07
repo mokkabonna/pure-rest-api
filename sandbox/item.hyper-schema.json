@@ -1,0 +1,42 @@
+{
+    "$id": "https://schema.example.com/product",
+    "$schema": "http://json-schema.org/draft-07/hyper-schema#",
+    "base": "https://api.example.com/",
+    "type": "object",
+    "required": ["price", "title"],
+    "additionalProperties": false,
+    "properties":
+    {
+        "id":
+        {
+            "$ref": "#/definitions/id"
+        },
+        "title":
+        {
+            "type": "string"
+        },
+        "price":
+        {
+            "type": "number"
+        }
+    },
+    "links": [
+    {
+        "rel": "self",
+        "href": "products/{id}",
+        "templateRequired": ["id"],
+        "targetSchema":
+        {
+            "$ref": "#"
+        }
+    }],
+    "definitions":
+    {
+        "id":
+        {
+            "type": "integer",
+            "minimum": 1,
+            "readOnly": true
+        }
+    }
+}

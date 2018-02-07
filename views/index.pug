@@ -12,10 +12,16 @@ html(lang="en")
         each val, name in resources
           li
             a(href=name)=name
-      form(onsubmit="client.createResource(event)")
-        h1 Create a new resource
-        p This can be a singleton resource or a collection of resources.
-        label URI to the resource<br>
+      form(onsubmit="client.createCollection(event)")
+        h1 Create a new collection
+        label URI to the collection resource<br>
           input(name="uri" placeholder="e.g. /products")
-        div
-          button  Create
+        label The JSON schema for each item in the collection
+          textarea(name="schema" rows="20")
+        button Create
+      form(onsubmit="client.createResource(event)")
+        h1 Create a new singleton resource
+        p A resource that is not part of a collection
+        label URI to the resource<br>
+          input(name="uri" placeholder="e.g. /about")
+        button Create

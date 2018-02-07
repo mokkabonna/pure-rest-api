@@ -15,36 +15,44 @@ html(lang="en")
               td=val
     main.data
       h1 Data
-      pre= JSON.stringify(resource.data, null, 2)
+      pre= JSON.stringify(items, null, 2)
     nav.links
       h1 Links
-      ul
-        each link, index in resource.links
-          li
-            if link.rel === 'self'
-              a(href=link.href rel=link.rel)=link.title || "This resource"
-            else
-              a(href=link.href rel=link.rel)=link.title || link.href
-              form(onsubmit="client.deleteRelation(event)")
-                input(type="hidden" name="uri" value=uri.href)
-                input(type="hidden" name="rel" value=link.rel)
-                input(type="hidden" name="href" value=link.href)
-                input(type="hidden" name="index" value=index)
-                button Delete relation
+      table.links
+        thead
+          tr
+            th Link
+            th Link relation type
+            th Actions
+        tbody
+          each link, index in resource.links
+            tr
+              td
+                if link.rel === 'self'
+                  a(href=link.href rel=link.rel)=link.title || "This resource"
+                else
+                  a(href=link.href rel=link.rel)=link.title || link.href
+              td
+                =link.rel
+              td
+                if link.rel !== 'self'
+                  form(onsubmit="client.deleteRelation(event)")
+                    input(type="hidden" name="uri" value=uri.href)
+                    input(type="hidden" name="rel" value=link.rel)
+                    input(type="hidden" name="href" value=link.href)
+                    input(type="hidden" name="index" value=index)
+                    button Delete relation
     section.actions
       h1 Actions
       form(onsubmit="client.addRelation(event)")
         h1 Add relation
         input(type="hidden" name="uri" value=uri.href)
-        div
-          label Relation type
-            select(name="rel")
-              option(value="item") Item
-        div
-          label The target URI
-            input(name="href")
-        div
-          button Add
+        label Relation type
+          select(name="rel")
+            option(value="item") Item
+        label The target URI
+          input(name="href")
+        button Add
             
         
   

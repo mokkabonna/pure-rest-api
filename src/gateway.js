@@ -14,6 +14,7 @@ const cacheableRequest = new CacheableRequest(http.request)
 
 var proxy = httpProxy.createProxyServer();
 var self = l => l.rel === 'self'
+var isItem = l => l.rel === 'item'
 
 app.use(express.static('public'))
 
@@ -36,8 +37,10 @@ app.get('*', function(req, res) {
 
   if (acceptType === 'html') {
     axios.get('http://127.0.0.1:3100' + req.originalUrl).then(function(response) {
+      var items = response.data.links.filter(isItem).map(l => l.href)
       res.render('generic', {
         resource: response.data,
+        items: items,
         uri: response.data.links.find(self)
       })
     }).catch(function(err) {

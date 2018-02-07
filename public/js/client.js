@@ -14,6 +14,21 @@ var client = {
 
     e.preventDefault()
   },
+  createCollection(e) {
+    fetch(e.target.uri.value, {
+      method: 'PUT',
+      headers: {
+        'content-type': 'application/vnd.tbd.data+json'
+      },
+      body: JSON.stringify([])
+    }).then(function(response) {
+      return response.json()
+    }).then(function(data) {
+      location.reload()
+    })
+
+    e.preventDefault()
+  },
   formToJSON(form) {
     var data = new FormData(form)
     var json = {}
