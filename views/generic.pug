@@ -53,7 +53,7 @@ html(lang="en")
         // label The target URI
           // input(name="href")
         // button Add
-      if describedBy.data
+      if describedBy && describedBy.data && describedBy.data.links
         each link in describedBy.data.links
           if link.submissionSchema
             form(onsubmit="client.submit(event)" action=link.href)
@@ -64,7 +64,7 @@ html(lang="en")
                     if prop.description
                       span.description= prop.description
                     textarea(name=name + 'Json' rows="10")
-                      = prop.default
+                      = prop.default || "{}"
                 if prop.type === "boolean"
                   label= prop.title || name
                     if prop.description
