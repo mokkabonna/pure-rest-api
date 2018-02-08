@@ -12,17 +12,20 @@ var fakeStore = {
       contentType: 'application/vnd.tbd.collection+json'
     },
     data: {},
-    links: [{
-      rel: 'self',
-      href: '/'
-    }, {
-      rel: 'item',
-      title: 'All JSON schemas',
-      href: '/schemas'
-    }, {
-      rel: 'describedBy',
-      href: '/schemas/'
-    }]
+    links: [
+      {
+        rel: 'self',
+        href: '/'
+      }, {
+        rel: 'item',
+        title: 'All JSON schemas',
+        href: '/schemas'
+      }, {
+        rel: 'describedBy',
+        title: 'The root schema',
+        href: '/schemas/'
+      }
+    ]
   },
   '/schemas': {
     meta: {
@@ -31,34 +34,51 @@ var fakeStore = {
       contentType: 'application/vnd.tbd.collection+json'
     },
     data: {},
-    links: [{
-      rel: 'self',
-      href: '/schemas'
-    }, {
-      rel: 'item',
-      title: 'Root schema',
-      href: '/schemas/'
-    }]
+    links: [
+      {
+        rel: 'self',
+        href: '/schemas'
+      }, {
+        rel: 'item',
+        title: 'Root schema',
+        href: '/schemas/'
+      }
+    ]
   },
   '/schemas/': createResource('/schemas/', {
     $id: 'https://schema.example.com/schemas/',
     $schema: 'http://json-schema.org/draft-07/hyper-schema#',
     base: '',
-    links: [{
-      rel: 'self',
-      href: '',
-      submissionSchema: {
-        properties: {
-          schema: {
-            type: 'object'
+    links: [
+      {
+        rel: 'self',
+        href: '',
+        submissionSchema: {
+          title: 'Resource',
+          properties: {
+            isCollection: {
+              type: 'boolean',
+              default: false
+            },
+            schema: {
+              title: 'The JSON schema',
+              description: 'A JSON schema defining the resource and its structure.',
+              type: 'object'
+            }
           }
         }
+      }, {
+        rel: 'item',
+        href: 'schemas'
       }
-    }, {
-      rel: 'item',
-      href: 'schemas'
-    }]
-  })
+    ]
+  }, [{
+    rel: 'self',
+    href: '/schemas/'
+  },{
+    rel: 'collection',
+    href: '/schemas'
+  }])
 }
 var store = {
   has(key) {
@@ -79,10 +99,12 @@ var store = {
 }
 
 function createResource(uri, data, links) {
-  links = links || [{
-    rel: 'self',
-    href: uri
-  }]
+  links = links || [
+    {
+      rel: 'self',
+      href: uri
+    }
+  ]
 
   return {
     meta: {
@@ -96,12 +118,7 @@ function createResource(uri, data, links) {
 }
 
 app.use(bodyParser.json({
-  type: [
-    'application/json-patch+json',
-    'application/json',
-    'application/vnd.tbd+json',
-    'application/vnd.tbd.data+json'
-  ]
+  type: ['application/json-patch+json', 'application/json', 'application/vnd.tbd+json', 'application/vnd.tbd.data+json']
 }))
 
 app.get('*', function(req, res) {

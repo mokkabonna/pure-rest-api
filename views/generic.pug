@@ -44,22 +44,33 @@ html(lang="en")
                     button Delete relation
     section.actions
       h1 Actions
-      form(onsubmit="client.addRelation(event)")
-        h1 Add relation
-        input(type="hidden" name="uri" value=uri.href)
-        label Relation type
-          select(name="rel")
-            option(value="item") item
-        label The target URI
-          input(name="href")
-        button Add
-      if isCollection
-        form(onsubmit="client.createCollection(event)" action=uri.href)
-          h1 Create collection
-          label The JSON hyper schema for the collection
-            textarea(name="schemaJson" rows="20")
-              = "{}"
-          button Create
+      // form(onsubmit="client.addRelation(event)")
+        // h1 Add relation
+        // input(type="hidden" name="uri" value=uri.href)
+        // label Relation type
+          // select(name="rel")
+            // option(value="item") item
+        // label The target URI
+          // input(name="href")
+        // button Add
+      if describedBy.data
+        each link in describedBy.data.links
+          if link.submissionSchema
+            form(onsubmit="client.submit(event)" action=link.href)
+              h1= "Create " + (link.title || "resource")
+              each prop, name in link.submissionSchema.properties
+                if prop.type === "object"
+                  label= prop.title || name
+                    if prop.description
+                      span.description= prop.description
+                    textarea(name=name + 'Json' rows="10")
+                      = prop.default
+                if prop.type === "boolean"
+                  label= prop.title || name
+                    if prop.description
+                      span.description= prop.description
+                    input(type="checkbox" name=name checked=prop.default)
+              button Create
             
         
   

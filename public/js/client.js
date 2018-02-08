@@ -14,7 +14,7 @@ var client = {
 
     e.preventDefault()
   },
-  createCollection(e) {
+  submit(e) {
     var data = this.formToJSON(e.target)
 
     fetch(e.target.action, {
