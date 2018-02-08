@@ -28,18 +28,6 @@ app.use(bodyParser.json({
     'application/vnd.tbd.data+json'
   ]
 }))
-// app.get('/', function(req, res, next) {
-//   var accept = accepts(req)
-//   var acceptType = accept.type(['html'])
-//
-//   if (acceptType === 'html') {
-//     axios.get('http://127.0.0.1:3001').then(function(response) {
-//       res.render('generic', {resource: response.data})
-//     })
-//   } else {
-//     proxy.web(req, res, {target: 'http://127.0.0.1:3001'});
-//   }
-// })
 
 app.get('*', function(req, res) {
   var accept = accepts(req)

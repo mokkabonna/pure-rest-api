@@ -65,6 +65,14 @@ form label input, form label select, form button, form textarea{
   font-size: 100%;
 }
 
-form label input, form textarea{
+form label input[type=text], form textarea{
   width: 100%;
+}
+
+form label .description {
+  display: block;
+  font-size: 90%;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-weight: normal;
 }
