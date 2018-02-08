@@ -12,19 +12,17 @@ var fakeStore = {
       contentType: 'application/vnd.tbd.collection+json'
     },
     data: {},
-    links: [
-      {
-        rel: 'self',
-        href: '/'
-      }, {
-        rel: 'item',
-        title: 'All JSON schemas',
-        href: '/schemas'
-      }, {
-        rel: 'describedBy',
-        href: '/schemas/'
-      }
-    ]
+    links: [{
+      rel: 'self',
+      href: '/'
+    }, {
+      rel: 'item',
+      title: 'All JSON schemas',
+      href: '/schemas'
+    }, {
+      rel: 'describedBy',
+      href: '/schemas/'
+    }]
   },
   '/schemas': {
     meta: {
@@ -33,16 +31,14 @@ var fakeStore = {
       contentType: 'application/vnd.tbd.collection+json'
     },
     data: {},
-    links: [
-      {
-        rel: 'self',
-        href: '/schemas'
-      }, {
-        rel: 'item',
-        title: 'Root schema',
-        href: '/schemas/'
-      }
-    ]
+    links: [{
+      rel: 'self',
+      href: '/schemas'
+    }, {
+      rel: 'item',
+      title: 'Root schema',
+      href: '/schemas/'
+    }]
   },
   '/schemas/': createResource('/schemas/', {
     $id: 'https://schema.example.com/schemas/',
@@ -82,7 +78,12 @@ var store = {
   }
 }
 
-function createResource(uri, data) {
+function createResource(uri, data, links) {
+  links = links || [{
+    rel: 'self',
+    href: uri
+  }]
+
   return {
     meta: {
       createdAt: new Date().toISOString(),
@@ -90,20 +91,20 @@ function createResource(uri, data) {
       contentType: 'application/vnd.tbd+json'
     },
     data: data,
-    links: [
-      {
-        rel: 'self',
-        href: uri
-      }
-    ]
+    links: links
   }
 }
 
 app.use(bodyParser.json({
-  type: ['application/json-patch+json', 'application/json']
+  type: [
+    'application/json-patch+json',
+    'application/json',
+    'application/vnd.tbd+json',
+    'application/vnd.tbd.data+json'
+  ]
 }))
 
-app.get('*', function (req, res) {
+app.get('*', function(req, res) {
   var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   if (hasResource && resource !== undefined) {
@@ -116,9 +117,14 @@ app.get('*', function (req, res) {
   }
 })
 
-app.put('*', function (req, res) {
+app.put('*', function(req, res) {
   var hasResource = store.has(req.originalUrl)
-  var resource = createResource(req.originalUrl, req.body)
+  if (req.headers['content-type'] === 'application/vnd.tbd+json') {
+    var resource = createResource(req.originalUrl, req.body.data, req.body.links)
+  } else {
+    var resource = createResource(req.originalUrl, req.body)
+  }
+
   store.set(req.originalUrl, resource)
   if (hasResource) {
     res.status(204).send()
@@ -127,7 +133,7 @@ app.put('*', function (req, res) {
   }
 })
 
-app.patch('*', function (req, res) {
+app.patch('*', function(req, res) {
   var hasResource = store.has(req.originalUrl)
   var resource = store.get(req.originalUrl)
 
@@ -140,7 +146,7 @@ app.patch('*', function (req, res) {
   }
 })
 
-app.delete('*', function (req, res) {
+app.delete('*', function(req, res) {
   var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   store.clear(req.originalUrl)

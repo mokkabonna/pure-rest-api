@@ -21,7 +21,12 @@ var isDescribedBy = l => l.rel === 'describedBy'
 app.use(express.static('public'))
 
 app.use(bodyParser.json({
-  type: ['application/json-patch+json', 'application/json']
+  type: [
+    'application/json-patch+json',
+    'application/json',
+    'application/vnd.tbd+json',
+    'application/vnd.tbd.data+json'
+  ]
 }))
 // app.get('/', function(req, res, next) {
 //   var accept = accepts(req)
@@ -65,7 +70,7 @@ app.get('*', function(req, res) {
         })
       }
     }).catch(function(err) {
-      if (err.response.status === 404) {
+      if (err.response && err.response.status === 404) {
         res.render('404')
       } else {
         res.render('500')
@@ -99,17 +104,29 @@ app.post('*', function(req, res) {
           method: 'PUT',
           url: url + '/' + length,
           headers: {
-            'content-type': 'application/vnd.tbd.data+json'
+            'content-type': 'application/vnd.tbd+json'
           },
+          data: {
+            data: {},
+            links: [
+              {
+                rel: 'self',
+                href: '/' + length
+              },
+              {
+                rel: 'describedBy',
+                href: '/schemas/1'
+              }
+            ]
+          }
         }),
         axios({
           method: 'PUT',
-          url: url + '/schemas/1',
+          url: url + 'schemas/1',
           headers: {
             'content-type': 'application/vnd.tbd.data+json'
           },
           data: req.body.schema
-
         }),
         axios({
           method: 'PATCH',
