@@ -4,7 +4,62 @@ var bodyParser = require('body-parser')
 var jsonpatch = require('json-patch')
 const app = express()
 
-var fakeStore = {}
+var fakeStore = {
+  '/': {
+    meta: {
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      contentType: 'application/vnd.tbd.collection+json'
+    },
+    data: {},
+    links: [{
+      rel: 'self',
+      href: '/'
+    }, {
+      rel: 'item',
+      title: 'All JSON schemas',
+      href: '/schemas'
+    }, {
+      rel: 'describedBy',
+      href: '/schemas/'
+    }]
+  },
+  '/schemas': {
+    meta: {
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      contentType: 'application/vnd.tbd.collection+json'
+    },
+    data: {},
+    links: [{
+      rel: 'self',
+      href: '/schemas'
+    }, {
+      rel: 'item',
+      title: 'Root schema',
+      href: '/schemas/'
+    }]
+  },
+  '/schemas/': createResource('/schemas/', {
+    $id: 'https://schema.example.com/schemas/',
+    $schema: 'http://json-schema.org/draft-07/hyper-schema#',
+    base: '',
+    links: [{
+      rel: 'self',
+      href: '',
+      submissionSchema: {
+        properties: {
+          schema: {
+            type: 'object'
+          }
+        }
+      }
+    }, {
+      rel: 'item',
+      href: 'schemas'
+    }]
+  })
+}
 var store = {
   has(key) {
     return fakeStore.hasOwnProperty(key)
@@ -23,7 +78,12 @@ var store = {
   }
 }
 
-function createResource(uri, data) {
+function createResource(uri, data, links) {
+  links = links || [{
+    rel: 'self',
+    href: uri
+  }]
+
   return {
     meta: {
       createdAt: new Date().toISOString(),
@@ -31,25 +91,20 @@ function createResource(uri, data) {
       contentType: 'application/vnd.tbd+json'
     },
     data: data,
-    links: [
-      {
-        rel: 'self',
-        href: uri
-      }
-    ]
+    links: links
   }
 }
 
 app.use(bodyParser.json({
-  type: ['application/json-patch+json', 'application/json']
+  type: [
+    'application/json-patch+json',
+    'application/json',
+    'application/vnd.tbd+json',
+    'application/vnd.tbd.data+json'
+  ]
 }))
 
-app.get('*', function (req, res) {
-  if (req.originalUrl === '/') {
-    res.send(store.getAll())
-    return
-  }
-
+app.get('*', function(req, res) {
   var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   if (hasResource && resource !== undefined) {
@@ -62,9 +117,14 @@ app.get('*', function (req, res) {
   }
 })
 
-app.put('*', function (req, res) {
+app.put('*', function(req, res) {
   var hasResource = store.has(req.originalUrl)
-  var resource = createResource(req.originalUrl, req.body)
+  if (req.headers['content-type'] === 'application/vnd.tbd+json') {
+    var resource = createResource(req.originalUrl, req.body.data, req.body.links)
+  } else {
+    var resource = createResource(req.originalUrl, req.body)
+  }
+
   store.set(req.originalUrl, resource)
   if (hasResource) {
     res.status(204).send()
@@ -73,12 +133,11 @@ app.put('*', function (req, res) {
   }
 })
 
-app.patch('*', function (req, res) {
+app.patch('*', function(req, res) {
   var hasResource = store.has(req.originalUrl)
   var resource = store.get(req.originalUrl)
 
   if (hasResource && resource !== undefined) {
-    console.log(req.body)
     jsonpatch.apply(resource, req.body)
     store.set(req.originalUrl, resource)
     res.status(200).send(resource)
@@ -87,7 +146,7 @@ app.patch('*', function (req, res) {
   }
 })
 
-app.delete('*', function (req, res) {
+app.delete('*', function(req, res) {
   var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   store.clear(req.originalUrl)

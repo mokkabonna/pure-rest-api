@@ -1,0 +1,27 @@
+{
+  "$id": "/product.schema.json",
+  "type": "object",
+  "title": "Product",
+  "required": ["name", "price"],
+  "properties": {
+    "id": {
+      "$ref": "/shared/id.schema.json"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "links": [{
+    "rel": "self",
+    "href": "products/{id}",
+    "templateRequired": ["id"],
+    "targetSchema": {
+      "$ref": "#"
+    }
+  }]
+}

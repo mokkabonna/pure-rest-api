@@ -1,0 +1,34 @@
+{
+  "$id": "/products.schema.json",
+  "type": "object",
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "allOf": [{
+          "$ref": "/product.schema.json#"
+        }],
+        "links": [{
+          "anchorPointer": "",
+          "rel": "item",
+          "href": "products/{id}",
+          "templateRequired": ["id"],
+          "targetSchema": {
+            "$ref": "product#"
+          }
+        }]
+      }
+    }
+  },
+  "links": [{
+    "rel": "self",
+    "href": "products",
+    "targetSchema": {
+      "$ref": "#"
+    },
+    "submissionSchema": {
+      "$ref": "product"
+    }
+  }]
+}

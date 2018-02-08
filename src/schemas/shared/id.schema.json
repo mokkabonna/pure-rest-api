@@ -1,0 +1,6 @@
+{
+  "$id": "/shared/id.schema.json",
+  "type": "integer",
+  "minimum": 1,
+  "readOnly": true
+}
