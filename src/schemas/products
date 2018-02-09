@@ -1,5 +1,5 @@
 {
-  "$id": "/products.schema.json",
+  "$id": "/schemas/products",
   "type": "object",
   "required": ["items"],
   "properties": {
@@ -7,15 +7,15 @@
       "type": "array",
       "items": {
         "allOf": [{
-          "$ref": "/product.schema.json#"
+          "$ref": "/schemas/product"
         }],
         "links": [{
           "anchorPointer": "",
           "rel": "item",
-          "href": "products/{id}",
+          "href": "products{/id}",
           "templateRequired": ["id"],
           "targetSchema": {
-            "$ref": "product#"
+            "$ref": "/schemas/product"
           }
         }]
       }
@@ -28,7 +28,14 @@
       "$ref": "#"
     },
     "submissionSchema": {
-      "$ref": "product"
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number"
+        }
+      }
     }
   }]
 }

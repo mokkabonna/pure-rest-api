@@ -22,6 +22,7 @@ html(lang="en")
         thead
           tr
             th Link
+            th Root relative URL
             th Link relation type
             th Actions
         tbody
@@ -32,6 +33,8 @@ html(lang="en")
                   a(href=link.href rel=link.rel)=link.title || "This resource"
                 else
                   a(href=link.href rel=link.rel)=link.title || link.href
+              td
+                =link.href
               td
                 =link.rel
               td
@@ -44,26 +47,27 @@ html(lang="en")
                     button Delete relation
     section.actions
       h1 Actions
-      // form(onsubmit="client.addRelation(event)")
-        // h1 Add relation
-        // input(type="hidden" name="uri" value=uri.href)
-        // label Relation type
-          // select(name="rel")
-            // option(value="item") item
-        // label The target URI
-          // input(name="href")
-        // button Add
       if describedBy && describedBy.data && describedBy.data.links
         each link in describedBy.data.links
-          if link.submissionSchema
+          if link.submissionSchema && link.submissionSchema.properties
             form(onsubmit="client.submit(event)" action=link.href)
-              h1= "Create " + (link.title || "resource")
+              h1= link.submissionSchema.title || "Create item in collection"
               each prop, name in link.submissionSchema.properties
+                if prop.type === "string"
+                  label= prop.title || name
+                    if prop.description
+                      span.description= prop.description
+                    input(type="text" name=name value=prop.default)
+                if prop.type === "number"
+                  label= prop.title || name
+                    if prop.description
+                      span.description= prop.description
+                    input(type="number" name=name + "Number" value=prop.default step="any")
                 if prop.type === "object"
                   label= prop.title || name
                     if prop.description
                       span.description= prop.description
-                    textarea(name=name + 'Json' rows="10")
+                    textarea(name=name + "Json" rows="10")
                       = prop.default || "{}"
                 if prop.type === "boolean"
                   label= prop.title || name

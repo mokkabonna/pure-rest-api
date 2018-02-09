@@ -12,20 +12,18 @@ var fakeStore = {
       contentType: 'application/vnd.tbd.collection+json'
     },
     data: {},
-    links: [
-      {
-        rel: 'self',
-        href: '/'
-      }, {
-        rel: 'item',
-        title: 'All JSON schemas',
-        href: '/schemas'
-      }, {
-        rel: 'describedBy',
-        title: 'The root schema',
-        href: '/schemas/'
-      }
-    ]
+    links: [{
+      rel: 'self',
+      href: '/'
+    }, {
+      rel: 'item',
+      title: 'All JSON schemas',
+      href: '/schemas'
+    }, {
+      rel: 'describedBy',
+      title: 'The root schema',
+      href: '/schemas/'
+    }]
   },
   '/schemas': {
     meta: {
@@ -34,48 +32,42 @@ var fakeStore = {
       contentType: 'application/vnd.tbd.collection+json'
     },
     data: {},
-    links: [
-      {
-        rel: 'self',
-        href: '/schemas'
-      }, {
-        rel: 'item',
-        title: 'Root schema',
-        href: '/schemas/'
-      }
-    ]
+    links: [{
+      rel: 'self',
+      href: '/schemas'
+    }, {
+      rel: 'item',
+      title: 'Root schema',
+      href: '/schemas/'
+    }]
   },
   '/schemas/': createResource('/schemas/', {
-    $id: 'https://schema.example.com/schemas/',
-    $schema: 'http://json-schema.org/draft-07/hyper-schema#',
     base: '',
-    links: [
-      {
-        rel: 'self',
-        href: '',
-        submissionSchema: {
-          title: 'Resource',
-          properties: {
-            isCollection: {
-              type: 'boolean',
-              default: false
-            },
-            schema: {
-              title: 'The JSON schema',
-              description: 'A JSON schema defining the resource and its structure.',
-              type: 'object'
-            }
+    links: [{
+      rel: 'self',
+      href: '',
+      submissionSchema: {
+        title: 'Resource',
+        properties: {
+          isCollection: {
+            type: 'boolean',
+            default: false
+          },
+          schema: {
+            title: 'The JSON schema',
+            description: 'A JSON schema defining the resource and its structure.',
+            type: 'object'
           }
         }
-      }, {
-        rel: 'item',
-        href: 'schemas'
       }
-    ]
+    }, {
+      rel: 'item',
+      href: 'schemas'
+    }]
   }, [{
     rel: 'self',
     href: '/schemas/'
-  },{
+  }, {
     rel: 'collection',
     href: '/schemas'
   }])
@@ -98,19 +90,18 @@ var store = {
   }
 }
 
-function createResource(uri, data, links) {
-  links = links || [
-    {
-      rel: 'self',
-      href: uri
-    }
-  ]
+function createResource(uri, data, links, contentType) {
+  contentType = contentType || 'application/vnd.tbd+json'
+  links = links || [{
+    rel: 'self',
+    href: uri
+  }]
 
   return {
     meta: {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      contentType: 'application/vnd.tbd+json'
+      contentType: contentType
     },
     data: data,
     links: links
@@ -137,15 +128,18 @@ app.get('*', function(req, res) {
 app.put('*', function(req, res) {
   var hasResource = store.has(req.originalUrl)
   if (req.headers['content-type'] === 'application/vnd.tbd+json') {
-    var resource = createResource(req.originalUrl, req.body.data, req.body.links)
+    var resource = createResource(req.originalUrl, req.body.data, req.body.links, req.body.meta.contentType)
   } else {
     var resource = createResource(req.originalUrl, req.body)
   }
 
-  store.set(req.originalUrl, resource)
-  if (hasResource) {
+  if (req.headers['if-none-match'] === '*' && hasResource) {
+    res.status(412).send()
+  } else if (hasResource) {
+    store.set(req.originalUrl, resource)
     res.status(204).send()
   } else {
+    store.set(req.originalUrl, resource)
     res.status(201).send(resource)
   }
 })

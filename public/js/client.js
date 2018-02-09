@@ -1,19 +1,4 @@
 var client = {
-  createResource(e) {
-    fetch(e.target.uri.value, {
-      method: 'PUT',
-      headers: {
-        'content-type': 'application/vnd.tbd.data+json'
-      },
-      body: JSON.stringify(null)
-    }).then(function(response) {
-      return response.json()
-    }).then(function(data) {
-      location.reload()
-    })
-
-    e.preventDefault()
-  },
   submit(e) {
     var data = this.formToJSON(e.target)
 
@@ -43,15 +28,18 @@ var client = {
     var data = new FormData(form)
     var json = {}
     var jsonregexp = /Json$/
+    var numberRegexp = /Number$/
+
     data.forEach(function(val, key) {
-      console.log(val)
-      if (jsonregexp.test(key)) {
+      if (numberRegexp.test(key)) {
+        json[key.replace(numberRegexp, '')] = parseFloat(val)
+      } else if (jsonregexp.test(key)) {
         try {
           json[key.replace(jsonregexp, '')] = JSON.parse(val)
         } catch (e) {
           alert('invalid json')
         }
-      }else {
+      } else {
         json[key] = val
       }
     })
@@ -66,16 +54,14 @@ var client = {
       headers: {
         'content-type': 'application/json-patch+json'
       },
-      body: JSON.stringify([
-        {
-          op: 'add',
-          path: '/links/-',
-          value: {
-            rel: data.rel,
-            href: data.href
-          }
+      body: JSON.stringify([{
+        op: 'add',
+        path: '/links/-',
+        value: {
+          rel: data.rel,
+          href: data.href
         }
-      ])
+      }])
     }).then(function(response) {
       return response.json()
     }).then(function(data) {
@@ -92,20 +78,18 @@ var client = {
         'content-type': 'application/json-patch+json'
       },
       //Delete the relation if still in same location
-      body: JSON.stringify([
-        {
-          op: 'test',
-          path: path + '/rel',
-          value: data.rel
-        }, {
-          op: 'test',
-          path: path + '/href',
-          value: data.href
-        }, {
-          op: 'remove',
-          path: path
-        }
-      ])
+      body: JSON.stringify([{
+        op: 'test',
+        path: path + '/rel',
+        value: data.rel
+      }, {
+        op: 'test',
+        path: path + '/href',
+        value: data.href
+      }, {
+        op: 'remove',
+        path: path
+      }])
     }).then(function() {
       location.reload()
     })
