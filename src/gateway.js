@@ -46,7 +46,6 @@ app.get('*', function(req, res) {
   if (acceptType === 'html') {
     axios.get('http://127.0.0.1:3001' + req.originalUrl).then(function(response) {
       var describedBy = response.data.links.find(relDescribedBy)
-      console.log(describedBy)
       if (describedBy) {
         return axios.get('http://127.0.0.1:3001' + describedBy.href).then(function(describedRes) {
           var items = response.data.links.filter(relItem).map(l => l.href)
@@ -72,7 +71,6 @@ app.get('*', function(req, res) {
       if (err.response && err.response.status === 404) {
         res.render('404')
       } else {
-        console.log(err)
         res.render('500')
       }
     })
@@ -147,7 +145,6 @@ app.post('*', function(req, res) {
         var selfRel = descResponse.body.data.links.find(relSelf)
         var validate = ajv.compile(selfRel.submissionSchema)
         var valid = validate(req.body)
-        console.log(valid)
         if (!valid) {
           new Problem(400, {
             detail: validate.errors
@@ -172,8 +169,6 @@ app.post('*', function(req, res) {
             var template = uriTemplates(itemRel.href)
             var resourceUrlFilled = template.fill(instanceData)
             var fullNewResourceUrl = URI.resolve(parentUrl, resourceUrlFilled)
-
-            console.log(fullNewResourceUrl)
 
             return Promise.all([
               got.put(fullNewResourceUrl, {

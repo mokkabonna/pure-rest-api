@@ -1,0 +1,44 @@
+{
+  "method": "GET",
+  "url": {
+    "host": [],
+    "path": ["products", 1]
+  },
+  "headers": {
+    "accept-": ""
+  },
+  "negotiation": {
+    "accept": {
+      "charsets": ["iso-8859-5", "unicode-1-1"],
+      "encodings": ["gzip", "compress", "identity"],
+      "languages": ["da", "en-gb", "en"],
+      "mediaTypes": ["text/plain", "text/html", "application/json", "*/*"]
+    }
+  },
+  "body": {
+    "user": "data"
+  }
+} {
+  "method": "GET",
+  "url": "/products/1",
+  "headers": {
+    "accept-": ""
+  },
+  "negotiation": {
+    "accept": {
+      "charsets": ["iso-8859-5", "unicode-1-1"],
+      "encodings": ["gzip", "compress", "identity"],
+      "languages": ["da", "en-gb", "en"],
+      "mediaTypes": ["text/plain", "text/html", "application/json", "*/*"]
+    },
+    "available": {
+      "mediaTypes": ["application/vnd.tbd+json", "application/json"]
+    },
+    "negotiated": {
+      "mediaType": "application/json"
+    }
+  },
+  "body": {
+    "user": "data"
+  }
+}

@@ -5,6 +5,51 @@ var jsonpatch = require('json-patch')
 const app = express()
 
 var fakeStore = {
+  '/18e91663-290f-4eeb-967f-32e2c7224b52': {
+    meta: {
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      contentType: 'application/vnd.tbd+json'
+    },
+    data: {
+      parsers: [{
+        schema: {
+          required: ['path'],
+          properties: {
+            path: {
+              items: [{
+                const: 'products'
+              }, {
+                pattern: '/d+',
+                transform: 'number'
+              }]
+            }
+          }
+        }
+      }],
+      routes: [{
+        target: 'http://localhost:3000',
+        schema: {
+          required: ['path'],
+          properties: {
+            path: {
+              minItems: 2,
+              items: [{
+                const: 'products'
+              }, {
+                type: 'integer',
+                minimum: 1
+              }]
+            }
+          }
+        }
+      }, {
+        target: 'http://localhost:3000',
+        schema: true
+      }]
+    },
+    links: [],
+  },
   '/': {
     meta: {
       createdAt: new Date().toISOString(),

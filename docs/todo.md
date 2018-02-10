@@ -8,3 +8,5 @@
 - [ ] Implement reverse proxy with caching (maybe use got.js or make http-proxy support custom request)
 - [ ] Make root url absolutely not cacheable
 - [ ] Use express promise based send
+- [ ] Create library that allows for transformation of string to json primitives
+- [ ] Create library that converts a schema json pointer to a instance json pointer

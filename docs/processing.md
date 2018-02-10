@@ -8,15 +8,15 @@ The user code will therefore have limited access to actions.
 
 The user code can do its own requests based on a customized http client given to it along with the representation embodied in the request.
 
+All clients can do safe method requests (GET, HEAD)
+We might add functionality to append a link of relation derived
+
 The request done to the user code is determined by content negotiation. For javascript code it is application/javascript.
 
-For other processing (like processing by a human) the content type might be plain/text, text/commonmark, text/html, even image/* 
+For other processing (like processing by a human) the content type might be plain/text, text/commonmark, text/html, even image/*
 
 The request body should contain all information that is needed to make a the processing possible. Keep in mind that the URL does locate/identify the resource that is responsible for processing the request.
 
 So for a human it might be /martin/programming/knockout.js
 
 And a request body might contain consist of a html representation together with code samples, links to documentation, a question, contain a submit form for the answer etc.
-
-
-
