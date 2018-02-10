@@ -1,9 +1,14 @@
+
+
+
 {
-  "method": "GET",
-  "url": {
-    "host": [],
-    "path": ["products", 1]
-  },
+  "operation": {
+    "method": "GET",
+    "url": {
+      "host": [],
+      "path": ["products", 1]
+    }
+  }
   "headers": {
     "accept-": ""
   },

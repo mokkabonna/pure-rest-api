@@ -71,6 +71,7 @@ app.get('*', function(req, res) {
       if (err.response && err.response.status === 404) {
         res.render('404')
       } else {
+        console.log(err)
         res.render('500')
       }
     })
