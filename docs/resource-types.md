@@ -1,7 +1,3 @@
-# POST
-
-I want to redefine POST semantics
-
 # Types of REST resources
 
 A resource is a resource in the classical term.
