@@ -8,22 +8,32 @@
       "host": [],
       "path": ["products", 1]
     }
-  }
+  },
   "headers": {
     "accept-": ""
-  },
-  "negotiation": {
-    "accept": {
-      "charsets": ["iso-8859-5", "unicode-1-1"],
-      "encodings": ["gzip", "compress", "identity"],
-      "languages": ["da", "en-gb", "en"],
-      "mediaTypes": ["text/plain", "text/html", "application/json", "*/*"]
-    }
   },
   "body": {
     "user": "data"
   }
-} {
+}
+
+
+
+{
+  "request": {},
+  
+}
+
+
+
+
+
+
+
+
+
+
+{
   "method": "GET",
   "url": "/products/1",
   "headers": {

@@ -1,9 +1,11 @@
 var origin = require('./src/origin-server')
 var gateway = require('./src/gateway')
 var validation = require('./src/validation')
+var processManager = require('./src/processManager')
 var genericHTML = require('./src/generic-html-provider')
 var router = require('./src/router')
 var got = require('got')
+var fs = require('fs')
 var axios = require('axios')
 var _ = require('lodash')
 
@@ -60,6 +62,10 @@ var resources = {
       }]
     },
     links: [],
+  },
+  '/templates/1': {
+    data: '"' + fs.readFileSync('./views/generic.pug', 'utf-8') + '"',
+    links: []
   },
   '/18e91663-290f-4eeb-967f-32e2c7224b52': {
     data: {

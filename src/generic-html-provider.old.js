@@ -35,14 +35,14 @@ app.use(function(req, res) {
     if (route) {
       return got(route.template, {
         json: true
-      }).then(function(template) {
+      }).then(function(response) {
 
       })
     } else {
       res.status(404).send()
     }
   }).catch(function(err) {
-    res.status(500).send(err.message)
+    res.status(500).send(err)
   })
 })
 
