@@ -2,6 +2,8 @@ var fs = require('fs')
 var got = require('got')
 var bodyParser = require('body-parser')
 var Mustache = require('mustache')
+var URI = require('uri-js')
+var _ = require('lodash')
 
 function getRequestUrl(req) {
   return req.protocol + '://' + req.get('host') + req.originalUrl
@@ -16,6 +18,8 @@ module.exports = function(req, res, next) {
       middleware(req, res, function() {
         if (req.body) {
           req.app.locals.config = req.body
+          var components = URI.parse(req.body.configURL)
+          req.app.locals.config.persistURL = URI.serialize(_.pick(components, 'scheme', 'userinfo', 'host', 'port'))
           got(req.body.configURL, {
             json: true,
           }).then(function(response) {

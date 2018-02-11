@@ -26,64 +26,77 @@ app.use(function(req, res) {
   got(app.locals.config.configURL, {
     json: true
   }).then(function(response) {
-    var config = response.body.data
-    var requestResponse = {
-      request: parseRequest.parse(req, config.parsers, ajv),
-      response: {
-
+      var config = response.body.data
+      var reqRes = {
+        request: parseRequest.parse(req, config.parsers, ajv),
+        response: {},
+        sources: {}
       }
-    }
-    var route = config.routes.find(function(route) {
-      return ajv.validate(route.schema, requestResponse.request.operation)
-    })
+      var route = config.routes.find(function(route) {
+        return ajv.validate(route.schema, reqRes.request.operation)
+      })
 
-    if (route) {
-      if (route.proxy) {
-        proxy.web(req, res, {
-          target: route.proxy.target
-        })
+      if (route) {
+        if (!route.steps || !route.steps.length) {
+          proxy.web(req, res, {
+            target: app.locals.config.persistURL
+          })
+        } else {
+          var steps = route.steps.slice(0)
+          var currentReqRes
+
+          var result = []
+
+          var resourceUrl = URI.resolve(app.locals.config.persistURL, reqRes.request.operation.url.originalUrl)
+
+          got(resourceUrl, {
+            json: true
+          }).then(function(response) {
+            reqRes.response.body = response.body
+          }).catch(function() {
+            //silence if no existing resource found
+          }).then(function() {
+            return executeProcess(steps, reqRes).then(function(results) {
+              var output = results[results.length - 1]
+              var response = output.response.body.response
+              res.status(response.statusCode || 200).send(response.body)
+            })
+          }).catch(function(err) {
+            res.status(500).send(err)
+          })
+        }
       } else {
-        var resolveResponse
-        var rejectResponse
-        var responsePromise = new Promise(function(resolve, reject) {
-          resolveResponse = resolve
-          rejectResponse = reject
-        })
-
-        var currentReqRes
-        
-        responsePromise = executeProcess(route.steps[i], next).then(function() {
-          
-        }, function(err) {
-          throw new Error('Step ' + (i + 1) + 'failed.')
-        })
-        
-
-        responsePromise.then(function(reqRes) {
-          res.status(reqRes.response.statusCode || 200).send(reqRes.body)
-        }).catch(function(err) {
-          res.status(500).send(err)
+        proxy.web(req, res, {
+          target: app.locals.config.persistURL
         })
       }
-    } else {
-      res.status(404).send()
-    }
-  }, function(err) {
-    res.status(500).send('Could not get config')
-  })
+    },
+    function(err) {
+      res.status(500).send('Could not get config')
+    })
 })
 
-function executeProcess(process, nextprocess){
-  process.startTime = new Date().getTime()
-  
-  return got.post(process.href, {
-    json: true
+function executeProcesses(previous, steps) {
+  previous.push(steps.shift())
+  return executeProcess(steps)
+}
+
+function executeProcess(steps, reqRes) {
+  var step = steps.find(s => !s.endTime)
+  if (!step) return steps
+
+  step.startTime = new Date()
+
+  return got.post(step.href, {
+    json: true,
+    body: reqRes
   }).then(function(response) {
-    process.endTime = new Date().getTime()
-    return process
+    step.response = response
+    step.endTime = new Date()
+    return executeProcess(steps, response.body)
   }).catch(function(err) {
-    process.error = err
-    return process
+    step.error = err
+    throw err
   })
 }
 

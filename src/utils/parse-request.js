@@ -1,5 +1,6 @@
 const traverse = require('json-schema-traverse')
 var pointer = require('json-pointer')
+var URI = require('uri-js')
 
 var transformers = {
   number: function(val) {
@@ -27,7 +28,7 @@ const notEmpty = s => s !== ''
 
 
 module.exports = {
-  parse: function createRequestObject(req, parsers=[], ajv) {
+  parse: function createRequestObject(req, parsers = [], ajv) {
     var request = Object.create(null)
 
     var hostPort = req.get('host').split(':')
@@ -35,11 +36,25 @@ module.exports = {
     var port = hostPort[1]
 
     var url = {
-      protocol: req.protocol,
+      scheme: req.protocol,
       host: host.split('.').reverse(),
       port: parseInt(port),
-      path: req.path.slice(1).split('/').filter(notEmpty)
+      path: req.path.slice(1).split('/').filter(notEmpty),
+      query: req.query
     }
+
+    var components = {
+      scheme: req.protocol,
+      host: host,
+      port: parseInt(port),
+    }
+
+    url.base = URI.serialize(components).replace(/\/$/, '')
+    components.path = req.path,
+    components.query = req.originalUrl.split('?')[1]
+
+    url.complete = URI.serialize(components)
+    url.originalUrl = req.originalUrl
 
     request.headers = req.headers
     request.operation = {

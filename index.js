@@ -1,12 +1,15 @@
 var origin = require('./src/origin-server')
 var httpManager = require('./src/http-manager')
+var expandLinks = require('./src/expand-links')
+var standardCollection = require('./src/standard-collection')
+var via = require('./src/via')
 var router = require('./src/router')
 var got = require('got')
 var fs = require('fs')
 var axios = require('axios')
 var _ = require('lodash')
 
-var all = 3
+var all = 5
 var started = 0
 
 var resolvePromise
@@ -25,7 +28,22 @@ router.listen(3000, () => {
   if (started === all) resolvePromise()
 })
 httpManager.listen(3050, () => {
-  console.log('Router listening on port 3050!')
+  console.log('Http process manager listening on port 3050!')
+  started = started + 1
+  if (started === all) resolvePromise()
+})
+expandLinks.listen(3051, () => {
+  console.log('Expand links processor listening on port 3051!')
+  started = started + 1
+  if (started === all) resolvePromise()
+})
+via.listen(3052, () => {
+  console.log('Expand links processor listening on port 3051!')
+  started = started + 1
+  if (started === all) resolvePromise()
+})
+standardCollection.listen(3053, () => {
+  console.log('Expand links processor listening on port 3051!')
   started = started + 1
   if (started === all) resolvePromise()
 })
@@ -37,7 +55,7 @@ var resources = {
   '/18e91663-290f-4eeb-967f-32e2c7224123': {
     data: {
       routes: [{
-        title: 'Generic fallback GET',
+        title: 'Generic collection representation',
         schema: {
           properties: {
             method: {
@@ -45,9 +63,13 @@ var resources = {
             }
           }
         },
-        proxy: {
-          target: 'http://localhost:3100',
-        }
+        steps: [{
+          href: 'http://localhost:3051'
+        }, {
+          href: 'http://localhost:3052'
+        }, {
+          href: 'http://localhost:3053'
+        }]
       }]
     },
     links: [],
@@ -117,7 +139,7 @@ var resources = {
     }, {
       rel: 'describedBy',
       title: 'The root schema',
-      href: '/schemas/'
+      href: '/schemas/root'
     }]
   },
   '/schemas': {
@@ -126,12 +148,12 @@ var resources = {
       rel: 'self',
       href: '/schemas'
     }, {
-      rel: 'item',
+      rel: 'item via',
       title: 'Root schema',
-      href: '/schemas/'
+      href: '/schemas/root'
     }]
   },
-  '/schemas/': {
+  '/schemas/root': {
     data: {
       links: [{
         rel: 'self',
@@ -181,11 +203,14 @@ allStarted.then(function() {
   })
 }).then(function() {
   console.log('All services running and configured!')
+
+  return got.get('http://localhost:3000').then(function(response) {
+    console.log(response.body)
+  })
 }).catch(function(err) {
   console.log('Failed to start all services.')
   console.log(err.message)
 })
-
 
 function configureProcessManager() {
   return got.get('http://localhost:3050', {
