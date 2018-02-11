@@ -33,24 +33,6 @@ var store = {
   }
 }
 
-// function createResource(uri, data, links, contentType) {
-//   contentType = contentType || 'application/vnd.tbd+json'
-//   links = links || [{
-//     rel: 'self',
-//     href: uri
-//   }]
-//
-//   return {
-//     meta: {
-//       createdAt: new Date().toISOString(),
-//       updatedAt: new Date().toISOString(),
-//       contentType: contentType
-//     },
-//     data: data,
-//     links: links
-//   }
-// }
-
 app.use(bodyParser.json({
   type: ['application/json-patch+json', 'application/json', 'application/vnd.tbd+json', 'application/vnd.tbd.data+json']
 }))

@@ -1,0 +1,10 @@
+{
+  "continue": true,
+  "statusCode": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "foo": "test"
+  }
+}

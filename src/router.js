@@ -10,7 +10,7 @@ var queryString = require('query-string')
 var serialize = require('serialize-javascript')
 var _ = require('lodash')
 var accepts = require('accepts')
-var parseRequest = require('./parse-request')
+var parseRequest = require('./utils/parse-request')
 var configMiddleware = require('./middleware/config')
 
 var proxy = httpProxy.createProxyServer({

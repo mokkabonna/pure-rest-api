@@ -1,15 +1,12 @@
 var origin = require('./src/origin-server')
-var gateway = require('./src/gateway')
-var validation = require('./src/validation')
-var processManager = require('./src/processManager')
-var genericHTML = require('./src/generic-html-provider')
+var httpManager = require('./src/http-manager')
 var router = require('./src/router')
 var got = require('got')
 var fs = require('fs')
 var axios = require('axios')
 var _ = require('lodash')
 
-var all = 5
+var all = 3
 var started = 0
 
 var resolvePromise
@@ -22,23 +19,13 @@ origin.listen(3100, () => {
   started = started + 1
   if (started === all) resolvePromise()
 })
-validation.listen(3001, () => {
-  console.log('Gateway listening on port 3001!')
+router.listen(3000, () => {
+  console.log('Router listening on port 3000!')
   started = started + 1
   if (started === all) resolvePromise()
 })
-router.listen(3002, () => {
-  console.log('Router listening on port 3002!')
-  started = started + 1
-  if (started === all) resolvePromise()
-})
-genericHTML.listen(3003, () => {
-  console.log('Router listening on port 3003!')
-  started = started + 1
-  if (started === all) resolvePromise()
-})
-gateway.listen(process.env.PORT || 3000, () => {
-  console.log('Gateway listening on port 3000!')
+httpManager.listen(3050, () => {
+  console.log('Router listening on port 3050!')
   started = started + 1
   if (started === all) resolvePromise()
 })
@@ -50,6 +37,7 @@ var resources = {
   '/18e91663-290f-4eeb-967f-32e2c7224123': {
     data: {
       routes: [{
+        title: 'Generic fallback GET',
         schema: {
           properties: {
             method: {
@@ -57,8 +45,9 @@ var resources = {
             }
           }
         },
-        template: 'http://localhost:3100/templates/1',
-        target: 'http://localhost:3100'
+        proxy: {
+          target: 'http://localhost:3100',
+        }
       }]
     },
     links: [],
@@ -85,7 +74,6 @@ var resources = {
         }
       }],
       routes: [{
-        target: 'http://localhost:3001',
         schema: {
           properties: {
             method: {
@@ -105,7 +93,7 @@ var resources = {
         },
         providers: [{
           mediaTypes: ['text/html'],
-          target: 'http://localhost:3003'
+          target: 'http://localhost:3050'
         }]
       }]
     },
@@ -188,19 +176,19 @@ allStarted.then(function() {
   return Promise.all(prefill).then(function() {
     return Promise.all([
       configureRouter(),
-      configureGenericHTMLProvider()
+      configureProcessManager()
     ])
   })
 }).then(function() {
   console.log('All services running and configured!')
 }).catch(function(err) {
   console.log('Failed to start all services.')
-  console.log(err)
+  console.log(err.message)
 })
 
 
-function configureGenericHTMLProvider() {
-  return got.get('http://localhost:3003', {
+function configureProcessManager() {
+  return got.get('http://localhost:3050', {
     headers: {
       accept: 'text/javascript'
     }
@@ -209,7 +197,7 @@ function configureGenericHTMLProvider() {
     var client = new Function('post', response.body).call(null, axios.post)
 
     return client.post({
-      configURL: 'http://localhost:3001/18e91663-290f-4eeb-967f-32e2c7224123'
+      configURL: 'http://localhost:3100/18e91663-290f-4eeb-967f-32e2c7224123'
     }).then(function(res) {
       console.log('Router configured!')
     })
@@ -217,7 +205,7 @@ function configureGenericHTMLProvider() {
 }
 
 function configureRouter() {
-  return got.get('http://localhost:3002', {
+  return got.get('http://localhost:3000', {
     headers: {
       accept: 'text/javascript'
     }
@@ -226,7 +214,7 @@ function configureRouter() {
     var client = new Function('post', response.body).call(null, axios.post)
 
     return client.post({
-      configURL: 'http://localhost:3001/18e91663-290f-4eeb-967f-32e2c7224b52'
+      configURL: 'http://localhost:3100/18e91663-290f-4eeb-967f-32e2c7224b52'
     }).then(function(res) {
       console.log('Router configured!')
     })
