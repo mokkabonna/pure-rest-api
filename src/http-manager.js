@@ -51,19 +51,13 @@ app.use(function(req, res) {
         })
 
         var currentReqRes
-        for (var i = 0; i < route.steps.length; i++) {
-          var currentStep = route.steps[i]
-
-          responsePromise = responsePromise.then(function() {
-            return got.post(currentStep.href, {
-              json: true
-            }).then(function(response) {
-              currentReqRes = response.body
-            })
-          }, function(err) {
-            throw new Error('Step ' + (i + 1) + 'failed.')
-          })
-        }
+        
+        responsePromise = executeProcess(route.steps[i], next).then(function() {
+          
+        }, function(err) {
+          throw new Error('Step ' + (i + 1) + 'failed.')
+        })
+        
 
         responsePromise.then(function(reqRes) {
           res.status(reqRes.response.statusCode || 200).send(reqRes.body)
@@ -78,5 +72,19 @@ app.use(function(req, res) {
     res.status(500).send('Could not get config')
   })
 })
+
+function executeProcess(process, nextprocess){
+  process.startTime = new Date().getTime()
+  
+  return got.post(process.href, {
+    json: true
+  }).then(function(response) {
+    process.endTime = new Date().getTime()
+    return process
+  }).catch(function(err) {
+    process.error = err
+    return process
+  })
+}
 
 module.exports = app
