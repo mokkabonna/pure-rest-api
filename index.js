@@ -23,7 +23,7 @@ origin.listen(3100, () => {
   started = started + 1
   if (started === all) resolvePromise()
 })
-router.listen(3000, () => {
+router.listen(process.env.PORT || 3000, () => {
   console.log('Router listening on port 3000!')
   started = started + 1
   if (started === all) resolvePromise()
@@ -203,7 +203,7 @@ allStarted.then(function() {
 }).then(function() {
   console.log('All services running and configured!')
 
-  return got.get('http://localhost:3000').then(function(response) {
+  return got.get('http://localhost:' + process.env.PORT || 3000).then(function(response) {
     console.log(response.body)
   })
 }).catch(function(err) {
@@ -229,7 +229,7 @@ function configureProcessManager() {
 }
 
 function configureRouter() {
-  return got.get('http://localhost:3000', {
+  return got.get('http://localhost:3000' + process.env.PORT || 3000, {
     headers: {
       accept: 'text/javascript'
     }
