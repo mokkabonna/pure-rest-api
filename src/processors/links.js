@@ -41,11 +41,11 @@ app.get('/self-link-adder', function(req, res) {
 })
 
 app.post('/self-link-adder', function(req, res) {
-  var links = req.body.response.body.links
-  if (links && links.length) {
-    var selfLinks = links.filter(l => /(^|\s)self(\s|$)/.test(l.rel))
+  var body = req.body.response.body
+  if (body && body.links && body.links.length) {
+    var selfLinks = body.links.filter(l => /(^|\s)self(\s|$)/.test(l.rel))
     if (!selfLinks.length) {
-      links.push({
+      body.links.push({
         rel: 'self',
         href: req.body.request.operation.url.complete
       })
@@ -60,9 +60,9 @@ app.get('/links-expander', function(req, res) {
 })
 
 app.post('/links-expander', function(req, res) {
-  var links = req.body.response.body.links
-  if (links && links.length) {
-    links.forEach(function(link) {
+  var body = req.body.response.body
+  if (body && body.links && body.links.length) {
+    body.links.forEach(function(link) {
       if (link.href[0] === '/') {
         link.href = req.body.request.operation.url.base + link.href
       }

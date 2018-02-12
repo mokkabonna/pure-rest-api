@@ -89,7 +89,8 @@ function executeProcess(steps, reqRes) {
 
   return got.post(step.href, {
     json: true,
-    body: reqRes
+    body: reqRes,
+    timeout: step.maxExecutionTime || 2000
   }).then(function(response) {
     step.response = response
     step.endTime = new Date()

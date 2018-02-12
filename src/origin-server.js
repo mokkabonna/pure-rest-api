@@ -25,7 +25,10 @@ var store = {
       meta: {
         contentType: contentType
       },
-      data: val
+      data: val || {
+        data: null,
+        links: []
+      }
     }
   },
   clear(key) {
@@ -50,6 +53,7 @@ app.get('*', function(req, res) {
   var hasResource = store.has(req.originalUrl)
   if (hasResource && resource !== undefined) {
     res.set('content-type', resource.meta.contentType)
+    if(req.originalUrl === '/productstest') console.log(resource)
     res.send(resource.data)
   } else if (hasResource && resource === undefined) {
     res.status(410).send()

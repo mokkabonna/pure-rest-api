@@ -15,15 +15,14 @@ app.get('/', function(req, res) {
 
 app.post('/', function(req, res) {
 
-  var links = req.body.response.body.links
-  if (links && links.length) {
-    var viaLinks = links.filter(function(link) {
+  var body = req.body.response.body
+  if (body && body.links && body.links.length) {
+    var viaLinks = body.links.filter(function(link) {
       var relationTypes = link.rel.split(' ').map(s => s.trim())
       return relationTypes.indexOf('via') !== -1
     })
 
     Promise.all(viaLinks.map(function(link) {
-      console.log(link.href)
       return got(link.href, {
         json: true
       }).then(function(response) {

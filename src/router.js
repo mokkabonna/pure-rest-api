@@ -46,28 +46,27 @@ app.use(function(req, res) {
       return ajv.validate(route.schema, request.operation)
     })
 
-    // // If preprocessed resource
-    // if (allUrls.indexOf(req.originalUrl) !== -1) {
-    //   proxy.web(req, res, {
-    //     target: 'http://localhost:3001'
-    //   })
-    //   return
-    // }
-
-
     if (route) {
       var serverMediaTypes = _.flatten(route.providers.map(p => p.mediaTypes))
       var accept = accepts(req)
       var type = accept.type(serverMediaTypes)
       var provider = route.providers.find(p => p.mediaTypes.indexOf(type) !== -1) || route.providers[0]
 
-      proxy.web(req, res, {
-        target: provider.target
-      })
+      if (provider) {
+        proxy.web(req, res, {
+          target: provider.target
+        })
+      } else {
+        // TODO supply a representation of almost matching urls of preprocessed resources
+        // and for dynamic resources forms for creating valid urls
+        proxy.web(req, res, {
+          target: app.locals.config.persistURL
+        })
+      }
     } else {
-      // TODO supply a representation of almost matching urls of preprocessed resources
-      // and for dynamic resources forms for creating valid urls
-      res.status(404).send()
+      proxy.web(req, res, {
+        target: app.locals.config.persistURL
+      })
     }
   }).catch(function(err) {
     console.log(err)

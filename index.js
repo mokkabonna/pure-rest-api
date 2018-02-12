@@ -1,15 +1,16 @@
 var origin = require('./src/origin-server')
 var httpManager = require('./src/http-manager')
-var links = require('./src/links')
-var standardCollection = require('./src/standard-collection')
-var via = require('./src/via')
+var links = require('./src/processors/links')
+var standardCollection = require('./src/processors/standard-collection')
+var via = require('./src/processors/via')
+var cache = require('./src/processors/cache')
 var router = require('./src/router')
 var got = require('got')
 var fs = require('fs')
 var axios = require('axios')
 var _ = require('lodash')
 
-var all = 5
+var all = 6
 var started = 0
 
 var resolvePromise
@@ -44,6 +45,11 @@ via.listen(3052, () => {
 })
 standardCollection.listen(3053, () => {
   console.log('Expand links processor listening on port 3051!')
+  started = started + 1
+  if (started === all) resolvePromise()
+})
+cache.listen(3010, () => {
+  console.log('Cache processor listening on port 3010!')
   started = started + 1
   if (started === all) resolvePromise()
 })

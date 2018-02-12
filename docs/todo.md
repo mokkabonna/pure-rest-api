@@ -17,3 +17,4 @@
 ## Process manager
 
 - [ ] Expose processes as a resource (inspect time, processors, individual results etc)
+- [ ] To support easy adding of links, create a processor that allow PUT link to a resource by relation type (PUT /resource/links/{rel}/{uri})
