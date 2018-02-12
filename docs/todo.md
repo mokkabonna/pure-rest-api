@@ -10,3 +10,10 @@
 - [ ] Use express promise based send
 - [ ] Create library that allows for transformation of string to json primitives
 - [ ] Create library that converts a schema json pointer to a instance json pointer
+
+
+
+
+## Process manager
+
+- [ ] Expose processes as a resource (inspect time, processors, individual results etc)

@@ -26,9 +26,9 @@ app.post('/', function(req, res) {
   })
 
   if (itemLinks.length) {
-    response.body.data = {
+    _.merge(response.body.data, {
       items: _.compact(itemLinks.map(l => sources[l.href]))
-    }
+    })
   }
 
   res.send(req.body)

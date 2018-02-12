@@ -1,6 +1,6 @@
 var origin = require('./src/origin-server')
 var httpManager = require('./src/http-manager')
-var expandLinks = require('./src/expand-links')
+var links = require('./src/links')
 var standardCollection = require('./src/standard-collection')
 var via = require('./src/via')
 var router = require('./src/router')
@@ -32,8 +32,8 @@ httpManager.listen(3050, () => {
   started = started + 1
   if (started === all) resolvePromise()
 })
-expandLinks.listen(3051, () => {
-  console.log('Expand links processor listening on port 3051!')
+links.listen(3051, () => {
+  console.log('Links processor listening on port 3051!')
   started = started + 1
   if (started === all) resolvePromise()
 })
@@ -64,7 +64,9 @@ var resources = {
           }
         },
         steps: [{
-          href: 'http://localhost:3051'
+          href: 'http://localhost:3051/self-link-adder'
+        }, {
+          href: 'http://localhost:3051/links-expander'
         }, {
           href: 'http://localhost:3052'
         }, {
@@ -130,9 +132,6 @@ var resources = {
   '/': {
     data: {},
     links: [{
-      rel: 'self',
-      href: '/'
-    }, {
       rel: 'item',
       title: 'All JSON schemas',
       href: '/schemas'
@@ -145,9 +144,6 @@ var resources = {
   '/schemas': {
     data: {},
     links: [{
-      rel: 'self',
-      href: '/schemas'
-    }, {
       rel: 'item via',
       title: 'Root schema',
       href: '/schemas/root'
@@ -178,9 +174,6 @@ var resources = {
       }]
     },
     links: [{
-      rel: 'self',
-      href: '/schemas/'
-    }, {
       rel: 'collection',
       href: '/schemas'
     }]
