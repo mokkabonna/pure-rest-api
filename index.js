@@ -21,66 +21,131 @@ var allStarted = new Promise(function(resolve, reject) {
 origin.listen(3100, () => {
   console.log('Persist server listening on port 3100!')
   started = started + 1
-  if (started === all) resolvePromise()
+  if (started === all)
+    resolvePromise()
 })
 router.listen(process.env.PORT || 3000, () => {
   console.log('Router listening on port 3000!')
   started = started + 1
-  if (started === all) resolvePromise()
+  if (started === all)
+    resolvePromise()
 })
 httpManager.listen(3050, () => {
-  console.log('Http process manager listening on port 3050!')
   started = started + 1
-  if (started === all) resolvePromise()
+  if (started === all)
+    resolvePromise()
 })
 links.listen(3051, () => {
-  console.log('Links processor listening on port 3051!')
   started = started + 1
-  if (started === all) resolvePromise()
+  if (started === all)
+    resolvePromise()
 })
 via.listen(3052, () => {
-  console.log('Expand links processor listening on port 3051!')
   started = started + 1
-  if (started === all) resolvePromise()
+  if (started === all)
+    resolvePromise()
 })
 standardCollection.listen(3053, () => {
-  console.log('Expand links processor listening on port 3051!')
   started = started + 1
-  if (started === all) resolvePromise()
+  if (started === all)
+    resolvePromise()
 })
 cache.listen(3010, () => {
-  console.log('Cache processor listening on port 3010!')
   started = started + 1
-  if (started === all) resolvePromise()
+  if (started === all)
+    resolvePromise()
 })
-
 
 var base = 'http://localhost:3100'
 
 var resources = {
-  '/18e91663-290f-4eeb-967f-32e2c7224123': {
+  '/processes/all': {
     data: {
-      routes: [{
-        title: 'Generic collection representation',
-        schema: {
-          properties: {
-            method: {
-              const: 'GET'
-            }
-          }
-        },
-        steps: [{
-          href: 'http://localhost:3051/self-link-adder'
-        }, {
-          href: 'http://localhost:3051/links-expander'
-        }, {
-          href: 'http://localhost:3052'
-        }, {
-          href: 'http://localhost:3053'
-        }]
-      }]
+      id: 'root',
+      startTime: new Date()
     },
-    links: [],
+    links: [
+      {
+        rel: 'item',
+        href: 'http://localhost:3100/processes/all/1'
+      }
+    ]
+  },
+  '/processes': {
+    data: {
+      routes: [
+        {
+          title: 'Generic collection representation',
+          schema: {
+            properties: {
+              method: {
+                const: 'GET'
+              }
+            }
+          },
+          steps: [
+            {
+              href: 'http://localhost:3051/hypermedia-enricher',
+              testSchema: {
+                properties: {
+                  response: {
+                    properties: {
+                      body: {
+                        type: 'object',
+                        properties: {
+                          links: {
+                            type: 'array',
+                            minItems: 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }, {
+              href: 'http://localhost:3053'
+            }
+          ]
+        }, {
+          title: 'Splitting storage of data and links',
+          schema: {
+            properties: {
+              method: {
+                const: 'PUT'
+              }
+            }
+          },
+          steps: [
+            {
+              href: 'http://localhost:3051/links-and-data-splitter'
+            }
+          ]
+        }, {
+          title: 'Allow PUT on individual links',
+          schema: {
+            properties: {
+              method: {
+                const: 'PUT'
+              },
+              url: {
+                properties: {
+                  query: {
+                    required: ['rel', 'href']
+                  }
+                }
+              }
+            }
+          },
+          steps: [
+            {
+              href: 'http://localhost:3051/dynamic-link-putter'
+            }
+          ]
+        }
+      ]
+    },
+    links: []
   },
   '/templates/1': {
     data: '"' + fs.readFileSync('./views/generic.pug', 'utf-8') + '"',
@@ -88,46 +153,82 @@ var resources = {
   },
   '/18e91663-290f-4eeb-967f-32e2c7224b52': {
     data: {
-      parsers: [{
-        schema: {
-          required: ['path'],
-          properties: {
-            path: {
-              items: [{
-                const: 'products'
-              }, {
-                pattern: '/d+',
-                transform: 'number'
-              }]
+      parsers: [
+        {
+          schema: {
+            required: ['path'],
+            properties: {
+              path: {
+                items: [
+                  {
+                    const: 'products'
+                  }, {
+                    pattern: '/d+',
+                    transform: 'number'
+                  }
+                ]
+              }
             }
           }
         }
-      }],
-      routes: [{
-        schema: {
-          properties: {
-            method: {
-              const: 'GET'
-            },
-            path: {
-              minItems: 1,
-              maxItems: 2,
-              items: [{
-                const: 'products'
-              }, {
-                type: 'integer',
-                minimum: 1
-              }]
+      ],
+      routes: [
+        {
+          schema: {
+            properties: {
+              method: {
+                const: 'GET'
+              },
+              path: {
+                minItems: 1,
+                maxItems: 2,
+                items: [
+                  {
+                    const: 'products'
+                  }, {
+                    type: 'integer',
+                    minimum: 1
+                  }
+                ]
+              }
             }
-          }
-        },
-        providers: [{
-          mediaTypes: ['text/html'],
-          target: 'http://localhost:3050'
-        }]
-      }]
+          },
+          providers: [
+            {
+              mediaTypes: ['text/html'],
+              target: 'http://localhost:3050'
+            }
+          ]
+        }, {
+          schema: {
+            properties: {
+              method: {
+                const: 'PUT'
+              },
+              path: {
+                minItems: 1,
+                maxItems: 2,
+                items: [
+                  {
+                    const: 'products'
+                  }, {
+                    type: 'integer',
+                    minimum: 1
+                  }
+                ]
+              }
+            }
+          },
+          providers: [
+            {
+              mediaTypes: ['application/json'],
+              target: 'http://localhost:3050'
+            }
+          ]
+        }
+      ]
     },
-    links: [],
+    links: []
   },
   '/products/1': {
     data: {
@@ -137,55 +238,84 @@ var resources = {
   },
   '/': {
     data: {},
-    links: [{
-      rel: 'item',
-      title: 'All JSON schemas',
-      href: '/schemas'
-    }, {
-      rel: 'describedBy',
-      title: 'The root schema',
-      href: '/schemas/root'
-    }]
+    links: [
+      {
+        rel: 'item',
+        title: 'All JSON schemas',
+        href: '/schemas'
+      }, {
+        rel: 'item',
+        title: 'Process information',
+        href: '/processes/all'
+      }, {
+        rel: 'describedBy',
+        title: 'The root schema',
+        href: '/schemas/root'
+      }
+    ]
   },
   '/schemas': {
     data: {},
-    links: [{
-      rel: 'item via',
-      title: 'Root schema',
-      href: '/schemas/root'
-    }]
+    links: [
+      {
+        rel: 'via',
+        title: 'Root schema',
+        href: '/schemas/root'
+      }, {
+        rel: 'item',
+        title: 'Root schema',
+        href: '/schemas/root'
+      }
+    ]
   },
   '/schemas/root': {
     data: {
-      links: [{
-        rel: 'self',
-        href: '',
-        submissionSchema: {
-          title: 'Resource',
-          properties: {
-            isCollection: {
-              type: 'boolean',
-              default: false
-            },
-            schema: {
-              title: 'The JSON schema',
-              description: 'A JSON schema defining the resource and its structure.',
-              type: 'object'
+      links: [
+        {
+          rel: 'self',
+          href: '',
+          submissionSchema: {
+            title: 'Resource',
+            properties: {
+              isCollection: {
+                type: 'boolean',
+                default: false
+              },
+              schema: {
+                title: 'The JSON schema',
+                description: 'A JSON schema defining the resource and its structure.',
+                type: 'object'
+              }
             }
           }
+        }, {
+          rel: 'item',
+          href: 'schemas'
         }
-      }, {
-        rel: 'item',
-        href: 'schemas'
-      }]
+      ]
     },
-    links: [{
-      rel: 'collection',
-      href: '/schemas'
-    }]
-  },
+    links: [
+      {
+        rel: 'collection',
+        href: '/schemas'
+      }
+    ]
+  }
 }
 
+var publicUrl = 'http://localhost:' + (
+process.env.PORT || 3000)
+
+for (var i = 0; i < 5; i++) {
+  resources['/schemas'].links.push({
+    rel: 'via',
+    href: '/schemas/root'
+  })
+  resources['/schemas'].links.push({
+    rel: 'item',
+    href: '/schemas/root'
+  })
+}
 
 allStarted.then(function() {
   var prefill = _.map(resources, function(resource, url) {
@@ -195,21 +325,22 @@ allStarted.then(function() {
     })
   })
   return Promise.all(prefill).then(function() {
-    return Promise.all([
-      configureRouter(),
-      configureProcessManager()
-    ])
+    return Promise.all([configureRouter(), configureProcessManager()])
   })
 }).then(function() {
   console.log('All services running and configured!')
 
-  return got.get('http://localhost:' + process.env.PORT || 3000).then(function(response) {
-    console.log(response.body)
+  Promise.all([
+    got.get(publicUrl),
+    got.get(publicUrl + '/processes', {json: true})
+  ]).catch(function(err) {
+    console.log('test of resources failed')
+    console.log(err)
   })
 }).catch(function(err) {
   console.log('Failed to start all services.')
   console.log(err.message)
-})
+});
 
 function configureProcessManager() {
   return got.get('http://localhost:3050', {
@@ -220,16 +351,14 @@ function configureProcessManager() {
     //safely create the client code
     var client = new Function('post', response.body).call(null, axios.post)
 
-    return client.post({
-      configURL: 'http://localhost:3100/18e91663-290f-4eeb-967f-32e2c7224123'
-    }).then(function(res) {
+    return client.post({configURL: 'http://localhost:3100/processes'}).then(function(res) {
       console.log('Router configured!')
     })
   })
 }
 
 function configureRouter() {
-  return got.get('http://localhost:3000' + process.env.PORT || 3000, {
+  return got.get(publicUrl, {
     headers: {
       accept: 'text/javascript'
     }
@@ -237,9 +366,7 @@ function configureRouter() {
     //safely create the client code
     var client = new Function('post', response.body).call(null, axios.post)
 
-    return client.post({
-      configURL: 'http://localhost:3100/18e91663-290f-4eeb-967f-32e2c7224b52'
-    }).then(function(res) {
+    return client.post({configURL: 'http://localhost:3050/18e91663-290f-4eeb-967f-32e2c7224b52'}).then(function(res) {
       console.log('Router configured!')
     })
   })

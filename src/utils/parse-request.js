@@ -1,6 +1,7 @@
 const traverse = require('json-schema-traverse')
 var pointer = require('json-pointer')
 var URI = require('uri-js')
+var uuidv4 = require('uuid/v4')
 
 var transformers = {
   number: function(val) {
@@ -67,6 +68,8 @@ module.exports = {
     })
 
     request.operation = parsers.reduce(parse, request.operation)
+
+    request.body = req.body
 
     return request
   }

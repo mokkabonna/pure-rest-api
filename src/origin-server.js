@@ -6,7 +6,6 @@ const app = express()
 
 var fakeStore = {}
 
-
 var store = {
   has(key) {
     return fakeStore.hasOwnProperty(key)
@@ -23,7 +22,7 @@ var store = {
   set(key, val, contentType) {
     fakeStore[key] = {
       meta: {
-        contentType: contentType
+        contentType: contentType || 'application/octet-stream'
       },
       data: val || {
         data: null,
@@ -42,18 +41,19 @@ app.use(bodyParser.json({
 
 app.get('*', function(req, res, next) {
   if (req.url === '/*') {
-    res.send(store.getAllKeys())
+    res.send(store.getAllKeys().map(k => req.protocol + '://' + req.get('host') + k))
   } else {
     next()
   }
 })
 
 app.get('*', function(req, res) {
+  console.log(req.originalUrl)
   var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   if (hasResource && resource !== undefined) {
     res.set('content-type', resource.meta.contentType)
-    if(req.originalUrl === '/productstest') console.log(resource)
+    res.set('expires', new Date(2018, 4, 1))
     res.send(resource.data)
   } else if (hasResource && resource === undefined) {
     res.status(410).send()

@@ -1,5 +1,5 @@
 var fs = require('fs')
-var got = require('got')
+var got = require('../got')
 var bodyParser = require('body-parser')
 var Mustache = require('mustache')
 var URI = require('uri-js')
