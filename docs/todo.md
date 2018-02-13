@@ -11,6 +11,7 @@
 - [ ] Create library that converts a schema json pointer to a instance json pointer
 - [ ] Implement better body parsing that allow for any JSON value
 - [ ] Implement default type of application/octet-stream in store
+- [ ] Implement a http server that does HTTP based writes, reads deletes, and even 410 gone?
 
 
 ## Process manager
@@ -28,7 +29,7 @@
 - [ ] Append the reqRes object with expected time of processing based on earlier processing or static target response time defined in the step config
 - [ ] Respect the prefer header
 
-## Vue text/html 
+## Vue text/html
 
 - [ ] Add generation of generic vue component for resources
 - [ ] Allow for specifying composite resources with specific vue code

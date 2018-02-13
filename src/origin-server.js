@@ -1,26 +1,50 @@
 'use strict'
-var express = require('express')
-var bodyParser = require('body-parser')
-var jsonpatch = require('json-patch')
+const express = require('express')
+const fs = require('fs')
+const path = require('path')
+const util = require('util')
+const glob = require('glob')
+const bodyParser = require('body-parser')
+const jsonpatch = require('json-patch')
 const app = express()
 
+const read = util.promisify(fs.readFile)
+const write = util.promisify(fs.writeFile)
+const globPromise = util.promisify(glob)
+
 var fakeStore = {}
+
+var storage = path.join(__dirname, '../data')
+
+console.log(storage)
 
 var store = {
   has(key) {
     return fakeStore.hasOwnProperty(key)
   },
   get(key) {
-    return fakeStore[key]
-  },
-  getAll() {
-    return fakeStore
+    var filePath = path.join(storage, encodeURIComponent(key) + '.json')
+    return read(filePath, 'utf-8').then(function(content) {
+      return JSON.parse(content)
+    }, function() {
+      return undefined //not found
+    }).catch(function() {
+      return null //parse error
+    })
   },
   getAllKeys() {
-    return Object.keys(fakeStore)
+    return globPromise(storage + '/**', {
+      nodir: true
+    }).then(function(files) {
+      return files.map(f => {
+        var match = /\/([^/]+)\.json/.exec(f)
+        return decodeURIComponent(match[1])
+      })
+    })
   },
   set(key, val, contentType) {
-    fakeStore[key] = {
+    var filePath = path.join(storage, encodeURIComponent(key) + '.json')
+    return write(filePath, JSON.stringify({
       meta: {
         contentType: contentType || 'application/octet-stream'
       },
@@ -28,9 +52,10 @@ var store = {
         data: null,
         links: []
       }
-    }
+    }))
   },
   clear(key) {
+    throw new Error('not implemented yet')
     fakeStore[key] = undefined
   }
 }
@@ -41,45 +66,63 @@ app.use(bodyParser.json({
 
 app.get('*', function(req, res, next) {
   if (req.url === '/*') {
-    res.send(store.getAllKeys().map(k => req.protocol + '://' + req.get('host') + k))
+    store.getAllKeys().then(function(files) {
+      res.send(files.map(k => req.protocol + '://' + req.get('host') + k))
+    }).catch(function(err) {
+      console.log(err)
+      res.status(500).send(err)
+    })
   } else {
     next()
   }
 })
 
 app.get('*', function(req, res) {
-  console.log(req.originalUrl)
-  var resource = store.get(req.originalUrl)
-  var hasResource = store.has(req.originalUrl)
-  if (hasResource && resource !== undefined) {
-    res.set('content-type', resource.meta.contentType)
-    res.set('expires', new Date(2018, 4, 1))
-    res.send(resource.data)
-  } else if (hasResource && resource === undefined) {
-    res.status(410).send()
-  } else {
-    res.status(404).send()
-  }
+  store.get(req.originalUrl).then(function(resource) {
+    if(resource === undefined) {
+      res.status(404).send()
+    } else if (resource !== null) {
+      res.set('content-type', resource.meta.contentType)
+      res.set('expires', new Date(2018, 4, 1))
+      res.send(resource.data)
+    } else {
+      res.status(410).send()
+    }
+  }).catch(function(err) {
+    if (err.code === 'ENOENT') {
+    } else {
+      res.status(500).send('Storage get error')
+    }
+  })
 })
 
 app.put('*', function(req, res) {
-  var hasResource = store.has(req.originalUrl)
-  // if (req.headers['content-type'] === 'application/vnd.tbd+json') {
-  //   var resource = createResource(req.originalUrl, req.body.data, req.body.links, req.body.meta.contentType)
-  // } else {
-  //   var resource = createResource(req.originalUrl, req.body)
-  // }
   var resource = req.body
 
-  if (req.headers['if-none-match'] === '*' && hasResource) {
-    res.status(412).send()
-  } else if (hasResource) {
-    store.set(req.originalUrl, resource, req.headers['content-type'])
-    res.status(204).send()
-  } else {
-    store.set(req.originalUrl, resource, req.headers['content-type'])
-    res.status(201).send(resource)
-  }
+  store.get(req.originalUrl).then(function(existingResource) {
+    var hasResource = existingResource !== null
+    if (req.headers['if-none-match'] === '*' && hasResource) {
+      res.status(412).send()
+    } else if (hasResource) {
+      store.set(req.originalUrl, resource, req.headers['content-type']).then(function() {
+        res.status(204).send()
+      }).catch(function() {
+        res.status(500).send('Storage error PUT')
+      })
+    } else {
+      store.set(req.originalUrl, resource, req.headers['content-type']).then(function() {
+        res.status(201).send(resource)
+      }).catch(function() {
+        res.status(500).send('Storage error PUT')
+      })
+    }
+  }).catch(function() {
+    if (err.code === 'ENOENT') {
+      res.status(404).send()
+    } else {
+      res.status(500).send()
+    }
+  })
 })
 
 // app.patch('*', function(req, res) {
@@ -96,14 +139,14 @@ app.put('*', function(req, res) {
 // })
 
 app.delete('*', function(req, res) {
-  var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
-  store.clear(req.originalUrl)
-  if (hasResource && resource !== undefined) {
-    res.send(resource)
-  } else {
-    res.status(204).send()
-  }
+  store.clear(req.originalUrl).then(function(resource) {
+    if (hasResource && resource !== undefined) {
+      res.send(resource)
+    } else {
+      res.status(204).send()
+    }
+  })
 })
 
 module.exports = app

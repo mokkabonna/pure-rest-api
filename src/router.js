@@ -69,11 +69,10 @@ app.use(function(req, res) {
       })
     }
   }).catch(function(err) {
-    console.log(err)
     if (err.response && err.response.statusCode === 404) {
       renderOptions(res)
     } else {
-      res.status(500).render('500')
+      res.status(500).send(err)
     }
   })
 })

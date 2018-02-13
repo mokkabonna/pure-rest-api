@@ -30,6 +30,7 @@ app.use(function(req, res) {
       response: {},
       sources: {}
     }
+
     var route = config.routes.find(function(route) {
       return ajv.validate(route.schema, reqRes.request.operation)
     })
@@ -69,8 +70,8 @@ app.use(function(req, res) {
     } else {
       proxy.web(req, res, {target: app.locals.config.persistURL})
     }
-  }, function(err) {
-    res.status(500).send('Could not get config')
+  }).catch(function(err) {
+    res.status(500).send(err.message)
   })
 })
 
@@ -90,20 +91,18 @@ function executeProcess(steps, reqRes, baseUri, parentProcessId) {
     ? parentProcessId + '/'
     : '') + step.id
 
-  // return got.put(processUri, {
-  //   json: true,
-  //   body: {
-  //     data: step,
-  //     links: []
-  //   }
-  // }).then(function() {
+  return got.put(processUri, {
+    json: true,
+    body: {
+      data: step,
+      links: []
+    }
+  }).then(function() {
     var promise
     var cacheKey = step.href + JSON.stringify(reqRes)
     var cached = cache[cacheKey]
     if (cached) {
-      promise = Promise.resolve({
-        body: cached
-      })
+      promise = Promise.resolve({body: cached})
     } else {
       promise = doReq(step, reqRes).then(function(response) {
         cache[cacheKey] = response.body
@@ -114,20 +113,20 @@ function executeProcess(steps, reqRes, baseUri, parentProcessId) {
     return promise.then(function(response) {
       step.response = response.body
       step.endTime = new Date()
-      // return got.put(processUri, {
-      //   json: true,
-      //   body: {
-      //     data: step,
-      //     links: []
-      //   }
-      // }).then(function() {
+      return got.put(processUri, {
+        json: true,
+        body: {
+          data: step,
+          links: []
+        }
+      }).then(function() {
         return executeProcess(steps, response.body, baseUri, parentProcessId)
-      // })
+      })
     }).catch(function(err) {
       step.error = err
       throw err
     })
-  // })
+  })
 }
 
 function doReq(step, reqRes) {

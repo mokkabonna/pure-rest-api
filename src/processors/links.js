@@ -40,65 +40,6 @@ app.get('/', function(req, res) {
   })
 })
 
-app.get('/links-and-data-splitter', function(req, res) {
-  res.send(selfLink)
-})
-
-app.post('/links-and-data-splitter', function(req, res) {
-  var op = req.body.request.operation
-  var body = req.body.request.body
-
-  if (body && body.links && body.data) {
-    body.links.push({
-      rel: 'via',
-      href: op.url.complete + '/data'
-    }, {
-      rel: 'via',
-      href: op.url.complete + '/links'
-    })
-
-    return Promise.all([
-      got.put(op.url.complete, {
-        json: true,
-        body: req.body
-      }),
-      got.put(op.url.complete + '/data', {
-        json: true,
-        body: body.data
-      }),
-      got.put(op.url.complete + '/links', {
-        json: true,
-        body: body.links
-      })
-    ]).then(function() {
-      res.send(req.body)
-    }).catch(function(err) {
-      res.status(500).send(err)
-    })
-  }
-
-  res.send(req.body)
-})
-
-app.get('/dynamic-link-putter', function(req, res) {
-  res.send(selfLink)
-})
-
-app.post('/dynamic-link-putter', function(req, res) {
-  var operation = req.body.request.operation
-  var op = req.body.request.operation
-
-  if (op.url.query.rel && op.url.query.href) {
-    Promise.all([got(op.url.complete, {json: true})]).then(function(responses) {
-      res.send(req.body.response.body = responses[0].body)
-    }).catch(function(err) {
-      res.status(500).send(err)
-    })
-  } else {
-    res.send(req.body)
-  }
-})
-
 app.get('/hypermedia-enricher', function(req, res) {
   res.send(selfLink)
 })
@@ -123,13 +64,6 @@ app.post('/hypermedia-enricher', function(req, res) {
     var options = {
       json: true
     }
-
-    if (req.body.request.headers['x-correlation-id']) {
-      options.headers = {
-        'x-correlation-id': req.body.request.headers['x-correlation-id']
-      }
-    }
-
     return got(link.href, options).then(function(response) {
       req.body.sources[link.href] = response.body
     })
@@ -141,6 +75,13 @@ app.post('/hypermedia-enricher', function(req, res) {
     res.status(500).send(err)
   })
 
+})
+
+
+app.post('/organizer', function(req, res) {
+  var body = req.body.request.body
+
+  res.send(req.body)
 })
 
 module.exports = app

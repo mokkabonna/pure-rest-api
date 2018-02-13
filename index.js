@@ -108,7 +108,7 @@ var resources = {
             }
           ]
         }, {
-          title: 'Splitting storage of data and links',
+          title: 'Organizer',
           schema: {
             properties: {
               method: {
@@ -118,28 +118,7 @@ var resources = {
           },
           steps: [
             {
-              href: 'http://localhost:3051/links-and-data-splitter'
-            }
-          ]
-        }, {
-          title: 'Allow PUT on individual links',
-          schema: {
-            properties: {
-              method: {
-                const: 'PUT'
-              },
-              url: {
-                properties: {
-                  query: {
-                    required: ['rel', 'href']
-                  }
-                }
-              }
-            }
-          },
-          steps: [
-            {
-              href: 'http://localhost:3051/dynamic-link-putter'
+              href: 'http://localhost:3051/organizer'
             }
           ]
         }
@@ -153,25 +132,7 @@ var resources = {
   },
   '/18e91663-290f-4eeb-967f-32e2c7224b52': {
     data: {
-      parsers: [
-        {
-          schema: {
-            required: ['path'],
-            properties: {
-              path: {
-                items: [
-                  {
-                    const: 'products'
-                  }, {
-                    pattern: '/d+',
-                    transform: 'number'
-                  }
-                ]
-              }
-            }
-          }
-        }
-      ],
+      parsers: [],
       routes: [
         {
           schema: {
@@ -196,32 +157,6 @@ var resources = {
           providers: [
             {
               mediaTypes: ['text/html'],
-              target: 'http://localhost:3050'
-            }
-          ]
-        }, {
-          schema: {
-            properties: {
-              method: {
-                const: 'PUT'
-              },
-              path: {
-                minItems: 1,
-                maxItems: 2,
-                items: [
-                  {
-                    const: 'products'
-                  }, {
-                    type: 'integer',
-                    minimum: 1
-                  }
-                ]
-              }
-            }
-          },
-          providers: [
-            {
-              mediaTypes: ['application/json'],
               target: 'http://localhost:3050'
             }
           ]
@@ -307,14 +242,8 @@ var publicUrl = 'http://localhost:' + (
 process.env.PORT || 3000)
 
 for (var i = 0; i < 5; i++) {
-  resources['/schemas'].links.push({
-    rel: 'via',
-    href: '/schemas/root'
-  })
-  resources['/schemas'].links.push({
-    rel: 'item',
-    href: '/schemas/root'
-  })
+  resources['/schemas'].links.push({rel: 'via', href: '/schemas/root'})
+  resources['/schemas'].links.push({rel: 'item', href: '/schemas/root'})
 }
 
 allStarted.then(function() {
