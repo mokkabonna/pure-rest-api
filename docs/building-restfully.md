@@ -98,7 +98,7 @@ Processes that need to spawn new processes can spawn new processes, by going to 
 
 
 Correlation id
-  I think processes should not be allowed to be trusted to supply the correlation
+  I think processes should not be allowed to be trusted to supply the correlation id.
 
 
 
@@ -117,14 +117,18 @@ Req res object:
    * Can be transformed by processors to do things like support different media types
    * Allow for general handlers that for instance does a pretty 404 with some links to useful resources.
    */
-  respond, // or response
-  source,
+  response, // or respond?
+  /**
+   * contains additional resources that are prefetched directly from the storage without going through the public api, this is only a few cases where this is desired. (maybe for link and data splitting?)
+   * I think this should be done by the process manager
+   */
+  sources,
   /**
    * contains a map of items that have to be created (PUT), excluding the main resource in the response body
    * this is persisted by the terminator/manager(not sure of the name)
    * If transactional integrity is required then the persisting will happen as an atomic unit. All or nothing. Probably a lock is needed? Maybe only a lock for POST operations? I think PUT and DELETE can work without locking.
    *
-   * For P
+   * 
    */
   create,
   /**
