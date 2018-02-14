@@ -42,6 +42,10 @@ Don't hesitate to list private things, we'll get to configuration of that later.
 - Employees
 - Sub organizations
 - Customers
+- Projects
+- Tasks
+- Code
+- Services
 - Products
 - Services
 - Domain specific data
