@@ -89,6 +89,7 @@ var resources = {
               testSchema: {
                 properties: {
                   response: {
+                    required: ['body'],
                     properties: {
                       body: {
                         type: 'object',
@@ -103,8 +104,6 @@ var resources = {
                   }
                 }
               }
-            }, {
-              href: 'http://localhost:3053'
             }
           ]
         }, {
@@ -118,6 +117,7 @@ var resources = {
           },
           steps: [
             {
+              testSchema: true,
               href: 'http://localhost:3051/organizer'
             }
           ]

@@ -58,6 +58,11 @@ app.use(function(req, res) {
             return ajv.validate(step.testSchema, reqRes)
           })
 
+          if (!steps.length) {
+            res.status(reqRes.response.statusCode || 200).send(reqRes.response.body)
+            return
+          }
+
           return executeProcess(steps, reqRes, app.locals.config.configURL, parentProcessId).then(function(results) {
             var output = results[results.length - 1]
             var response = output.response.response
@@ -74,8 +79,6 @@ app.use(function(req, res) {
     res.status(500).send(err.message)
   })
 })
-
-var cache = {}
 
 function executeProcess(steps, reqRes, baseUri, parentProcessId) {
   var step = steps.find(s => !s.endTime)
@@ -98,19 +101,7 @@ function executeProcess(steps, reqRes, baseUri, parentProcessId) {
       links: []
     }
   }).then(function() {
-    var promise
-    var cacheKey = step.href + JSON.stringify(reqRes)
-    var cached = cache[cacheKey]
-    if (cached) {
-      promise = Promise.resolve({body: cached})
-    } else {
-      promise = doReq(step, reqRes).then(function(response) {
-        cache[cacheKey] = response.body
-        return response
-      })
-    }
-
-    return promise.then(function(response) {
+    return doReq(step, reqRes).then(function(response) {
       step.response = response.body
       step.endTime = new Date()
       return got.put(processUri, {

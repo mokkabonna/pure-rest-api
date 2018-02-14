@@ -33,9 +33,7 @@ var store = {
     })
   },
   getAllKeys() {
-    return globPromise(storage + '/**', {
-      nodir: true
-    }).then(function(files) {
+    return globPromise(storage + '/**', {nodir: true}).then(function(files) {
       return files.map(f => {
         var match = /\/([^/]+)\.json/.exec(f)
         return decodeURIComponent(match[1])
@@ -79,20 +77,17 @@ app.get('*', function(req, res, next) {
 
 app.get('*', function(req, res) {
   store.get(req.originalUrl).then(function(resource) {
-    if(resource === undefined) {
+    if (resource === undefined) {
       res.status(404).send()
     } else if (resource !== null) {
       res.set('content-type', resource.meta.contentType)
-      res.set('expires', new Date(2018, 4, 1))
+      // res.set('expires', new Date(2018, 4, 1))
       res.send(resource.data)
     } else {
       res.status(410).send()
     }
   }).catch(function(err) {
-    if (err.code === 'ENOENT') {
-    } else {
-      res.status(500).send('Storage get error')
-    }
+    res.status(500).send('Storage get error')
   })
 })
 

@@ -68,8 +68,8 @@ app.post('/hypermedia-enricher', function(req, res) {
       req.body.sources[link.href] = response.body
     })
   })).then(function() {
-    res.set('cache-control', 'public')
-    res.set('expires', new Date().setMonth(4))
+    // res.set('cache-control', 'public')
+    // res.set('expires', new Date().setMonth(4))
     res.send(req.body)
   }).catch(function(err) {
     res.status(500).send(err)
@@ -81,7 +81,17 @@ app.post('/hypermedia-enricher', function(req, res) {
 app.post('/organizer', function(req, res) {
   var body = req.body.request.body
 
-  res.send(req.body)
+  if (body.links) {
+    // TODO move this logic of handling status codes to the process manager maybe?
+    req.body.response.statusCode = 201
+    req.body.response.body = body
+    res.send(req.body)
+  } else {
+    req.body.response.statusCode = 400
+    req.body.response.body = 'You need a body'
+    res.send(req.body)
+  }
+
 })
 
 module.exports = app
