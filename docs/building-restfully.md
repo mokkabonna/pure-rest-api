@@ -83,10 +83,9 @@ This processor also initiates any transaction and supplies the transaction id to
 
 
 Terminator processor: (probably part of the process manager)
-At the end of all process chains there is a terminator that sends the response and persists data if applicable (like a PUT or a POST). For PUT it stores the response body.
+At the end of all process chains there is a terminator that sends the response and persists data if applicable (like a PUT or a POST). For PUT it stores the response body. The terminator lives in the root process.
 
-
-Single process only: I believe we should only have one process per public url. For other processing, parallel or otherwise, you should do a public http call as the process identity (and the user probably).
+Single process only: I believe we should only have one process per public url. For other processing, parallel or otherwise, you should do a public http call as the process identity (and the user probably). Each unit of processing should therefore be exposed publically, but restricted access of course.
 
 Processes that need to spawn new processes can spawn new processes, by going to the public api. The process will send an authenticate field with a token that it received to do so. The original authorization header should or could be spoofed and a new one generated on the fly. This new authorization header also acts as a correlation id. It is an authorization token that maps against the original user (need to store this for the duration of the process), so that the child process cannot do anything the original user could not do, but it also correlates the specific actions of the process server as a whole. Those are to be considered child processes of the original process.
 
@@ -128,7 +127,7 @@ Req res object:
    * this is persisted by the terminator/manager(not sure of the name)
    * If transactional integrity is required then the persisting will happen as an atomic unit. All or nothing. Probably a lock is needed? Maybe only a lock for POST operations? I think PUT and DELETE can work without locking.
    *
-   * 
+   *
    */
   create,
   /**
