@@ -13,6 +13,7 @@
 - [ ] Implement default type of application/octet-stream in store
 - [ ] Implement a http server that does HTTP based writes, reads deletes, and even 410 gone?
 - [ ] Test possibility to create a true sandbox in js, deleting all objects in the global scope, disallow [], {} with esprima etc
+- [ ]
 
 
 ## Process manager

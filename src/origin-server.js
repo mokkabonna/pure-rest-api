@@ -41,16 +41,25 @@ var store = {
     })
   },
   set(key, val, contentType) {
-    var filePath = path.join(storage, encodeURIComponent(key) + '.json')
-    return write(filePath, JSON.stringify({
-      meta: {
-        contentType: contentType || 'application/octet-stream'
-      },
-      data: val || {
-        data: null,
-        links: []
+    return new Promise(function(resolve, reject){
+
+      var filePath = path.join(storage, encodeURIComponent(key) + '.json')
+      var contents
+      try {
+        contents = JSON.stringify({
+          meta: {
+            contentType: contentType || 'application/octet-stream'
+          },
+          data: val || {
+            data: null,
+            links: []
+          }
+        })
+        write(filePath, contents).then(resolve, reject)
+      } catch (err) {
+        reject(new Error('Could not stringify.'))
       }
-    }))
+    })
   },
   clear(key) {
     throw new Error('not implemented yet')
