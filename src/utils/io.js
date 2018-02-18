@@ -54,7 +54,7 @@ function createRequestObject(req, parsers = [], ajv) {
           var url = {
               scheme: 'http',
               host: host.split('.').reverse(),
-              port: port,
+              port: port || 80,
               path: path.slice(1).split('/').filter(notEmpty),
               query: query || {}
             }
@@ -62,7 +62,7 @@ function createRequestObject(req, parsers = [], ajv) {
             var components = {
                 scheme: 'http',
                 host: host,
-                port: port
+                port: port || 80
               }
 
               url.base = URI.serialize(components).replace(/\/$/, '')
