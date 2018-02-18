@@ -1,5 +1,6 @@
 # Todos
 
+- [ ] Surfing proxy, store all requests and responses. Setup proxy and vpn. Then later I can organize it and connect it.
 - [ ] Authentication and authorization
 - [ ] Versioning and immutable
 - [ ] Logging processor, this might log in parallel or sequentially depending on the importance of the logs

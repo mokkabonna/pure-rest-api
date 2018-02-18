@@ -35,15 +35,6 @@ function createServer(port, initConfig) {
 
       if (serverConfig) {}
 
-      // store.set(url, {
-      //   links: '',
-      //   meta: {
-      //     contentType: headers['content-type']
-      //   },
-      //   data:
-      // })
-      // request.pipe(got.stream[method.toLowerCase()](uri))
-
       request.on('error', (err) => {
         console.error(err)
       }).on('data', (chunk) => {
