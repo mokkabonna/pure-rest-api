@@ -8,40 +8,46 @@ var processStore = new Map()
 
 function createServer(config) {
   config = config || {}
+  
+  if(!config.steps) {
+    throw new Error('You must initialize the server with relevant steps.')
+  }
+  
   return {
     server: http.createServer(function(request, response) {
       let body = []
       var io = ioUtil.createIOObject(request, response)
       var url = io.i.operation.url.complete
-
-      response.write(JSON.stringify(io))
-      request.pipe(response)
-
-      // request.on('error', (err) => {
-      //   console.error(err)
-      // }).on('data', (chunk) => {
-      //   body.push(chunk)
-      // }).on('end', () => {
-      //   io.body = store.set(url, io)
-      //   body = Buffer.concat(body).toString()
-      //
-      //   response.on('error', (err) => {
-      //     console.error(err)
-      //   })
-      //
-      //   response.statusCode = 200
-      //   response.setHeader('Content-Type', 'application/json')
-      //
-      //   const responseBody = {
-      //     headers: io.i.headers,
-      //     method: io.i.operation.method,
-      //     url: io.i.operation.url.completeUrl,
-      //     body: body,
-      //   }
-      //
-      //   response.write(JSON.stringify(responseBody))
-      //   response.end()
-      // })
+      
+      request.on('error', (err) => {
+        console.error(err)
+      }).on('data', (chunk) => {
+        body.push(chunk)
+      }).on('end', () => {
+        body = Buffer.concat(body).toString()
+      
+        response.on('error', (err) => {
+          console.error(err)
+        })
+        
+        var doRequest = function doRequest(step) {
+          got.post(step.uri, {
+            json: true,
+            body: io
+          })
+        }
+        
+        var currentIO = io
+        for (let i = 0; i < config.steps.length; i++) {
+          currentIO = await doRequest(config.steps[i])
+        }
+  
+        response.writeHead(currentIO.o.statusCode || 200, {
+          'X-Powered-By': 'my library!'
+        })
+        
+        response.end(JSON.stringify(currentIO.o.body))
+      })
     })
   }
 }

@@ -14,7 +14,7 @@ app.get('/', function(req, res) {
 })
 
 app.post('/', function(req, res) {
-  req.body.request.completeURI = 'http://something.something.com'
+  req.body.i.operation.completeURI = 'http://something.something.com'
   res.send(req.body)
 })
 
