@@ -121,14 +121,14 @@ class DataServer {
     this.mountedAt = options.mountedAt
     this.isRoot = !!options.mountedAt
 
-    
+
     var routes = [{
       test: function(io) {
         return io.i.method === 'GET'
       },
       // experimental thoughts: Identity and access management code that runs inbetween each process and verifies each output and input
       // so that no processor does things it's not allowed to do, if it does so it will be flagged as a misbehaving service and an replacement will be located
-      // the process will be stopped until a replacement has been found, or the original operator behaves according to spec. 
+      // the process will be stopped until a replacement has been found, or the original operator behaves according to spec.
       // When this happens we can respond with 202 for http and in js with a promise containing a representation!
       iam: iam,
       operators: [{
@@ -150,17 +150,17 @@ class DataServer {
           if (route) {
             return async function() {
               // get the original resource and populate the body
-              io.o.body = await originValue.call(target, io) 
+              io.o.body = await originValue.call(target, io)
               var processors = route.processors.filter(p => _.attempt(p.test, io) === true)
 
               // sequentially do the operations
-              // if the future we can 
+              // if the future we can
               for (var i = 0; i < processors.length; i++) {
                 io = await processors[i].run(io)
               }
-              
+
               //For PUT, POST, PATCH then io.i.body is persisted according to the cache rules
-              
+
               return io
             }
           } else {
@@ -185,7 +185,7 @@ class DataServer {
   }
 }
 
-async function convertCsvToJSON(options) {
+async function getFiles(options) {
   var head = new RootServer(options)
   head.mount('datasets', DataServer)
   var io = await head.datasets.get.files({
@@ -195,8 +195,8 @@ async function convertCsvToJSON(options) {
   console.log(io.o)
 }
 
-convertCsvToJSON({
-  mountedAt: 'c:\\users\\martinha\\plotting-demo'
+getFiles({
+  mountedAt: 'c:\\users\\marti\\pure-rest-api\\data'
 }).then(function(result) {
   console.log(result)
 }).catch(function(err) {

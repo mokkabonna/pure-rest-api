@@ -12,8 +12,14 @@ app.get('/', function(req, res) {
 
 app.post('/basic', function(req, res) {
   req.body.o.statusCode = 200
-  req.body.o.body = 'Hello world!'
-  res.send(req.body)
+  req.body.o.body = {
+    extra:  'Hello world from basic math operations!',
+    ...req.body.o.body
+  }
+
+  setTimeout(function () {
+    res.send(req.body)
+  }, 0)
 })
 
 module.exports = app

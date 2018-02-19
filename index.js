@@ -14,16 +14,24 @@ var allStarted = new Promise(function(resolve, reject) {
 
 var port = process.env.PORT || 80
 var manager = processManager({
-  steps: [
-    {
-      targetDuration: 100,
-      uri: 'http://localhost:3001' // initiator and terminator
+  manages: 'martinhansen.io',
+  mountedAt: 'c:\\users\\marti\\pure-rest-api\\data',
+  persistURI: 'file:///localhost/c:/users/marti/pure-rest-api/data',
+  beforeEach: [],
+  afterEach: [],
+  routes: [{
+    name: 'Standard get',
+    test: {
+      properties: {
+        method: {
+          const: 'GET'
+        }
+      }
     },
-    {
-      targetDuration: 100,
-      uri: 'http://localhost:3001' // initiator and terminator
-    }
-  ]
+    steps: [{
+      uri: 'http://localhost:3002/basic'
+    }]
+  }]
 })
 
 manager.server.listen(port, () => {
@@ -41,7 +49,7 @@ math.listen(3002, () => {
 })
 
 IT.listen(3001, () => {
-  console.log('Math operator listening on port 3001!')
+  console.log('IO operator listening on port 3001!')
   started = started + 1
   if (started === all)
     resolvePromise()
@@ -50,7 +58,10 @@ IT.listen(3001, () => {
 var publicUrl = 'http://localhost:' + port
 
 allStarted.then(function() {
-  got(publicUrl).then(function(res) {
-    console.log(res.body)
+  return got(publicUrl).then(function(res) {
+    return got.put(publicUrl + '/')
   })
+}).catch(function (err) {
+  console.log('Could not start servers.')
+  console.log(err.response.body)
 })

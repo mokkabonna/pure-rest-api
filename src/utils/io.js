@@ -43,46 +43,44 @@ function createResponseObject(res) {
 function createRequestObject(req, parsers = [], ajv) {
   var request = Object.create(null)
 
-    var hostPort = req.headers.host.split(':')
-      var host = hostPort[0]
-        var port = hostPort[1] ? parseInt(hostPort[1]) : null
+  var hostPort = req.headers.host.split(':')
+  var host = hostPort[0]
+  var port = hostPort[1] ? parseInt(hostPort[1]) : null
 
-        var pathQuery = req.url.split('?')
-        var path = pathQuery[0]
-        var query = pathQuery[1]
+  var pathQuery = req.url.split('?')
+  var path = pathQuery[0]
+  var query = pathQuery[1]
 
-          var url = {
-              scheme: 'http',
-              host: host.split('.').reverse(),
-              port: port || 80,
-              path: path.slice(1).split('/').filter(notEmpty),
-              query: query || {}
-            }
+  var uri = {
+    scheme: 'http',
+    host: host.split('.').reverse(),
+    port: port || 80,
+    path: path.slice(1).split('/').filter(notEmpty),
+    query: query || {}
+  }
 
-            var components = {
-                scheme: 'http',
-                host: host,
-                port: port || 80
-              }
+  var components = {
+    scheme: 'http',
+    host: host,
+    port: port || 80
+  }
 
-              url.base = URI.serialize(components).replace(/\/$/, '')
-              components.path = path,
-              components.query = query
+  uri.base = URI.serialize(components).replace(/\/$/, '')
+  components.path = path,
+    components.query = query
 
-              url.complete = URI.serialize(components)
+  uri.complete = URI.serialize(components)
 
-              request.headers = req.headers
-              request.operation = {
-                method: req.method,
-                url
-              }
+  request.headers = req.headers
+  request.method = req.method,
+    request.uri = uri
 
-              request.body = req.body
+  request.body = req.body
 
-              return request
-            }
+  return request
+}
 
-            module.exports = {
-              parse: createRequestObject,
-              createIOObject
-            }
+module.exports = {
+  parse: createRequestObject,
+  createIOObject
+}
