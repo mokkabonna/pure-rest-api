@@ -1,6 +1,6 @@
 # The system
 
-[This document](/dictionary/system) contain a description of [this system](/) and its parts.
+[This document](system.md) contain a description of [this system](/) and its parts.
 
 
 ## Introduction
