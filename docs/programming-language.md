@@ -1,7 +1,5 @@
 This describes the building blocks of the js-pseudo language.
 
-
-
 Normal:
 ```js
 var result = (5 + io.i * 7) * 9
