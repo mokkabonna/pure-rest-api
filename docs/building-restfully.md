@@ -110,13 +110,13 @@ Req res object:
    *
    * body can be modified by processors to do things like process incoming data, annotate an image, enhance the quality of the data, augment the data etc (not if PUT)
    */
-  request,
+  i,
   /**
    * contains by default the resource body and statusCode resulting from a GET to the storage service.
    * Can be transformed by processors to do things like support different media types
    * Allow for general handlers that for instance does a pretty 404 with some links to useful resources.
    */
-  response, // or respond?
+  o, // or respond?
   /**
    * contains additional resources that are prefetched directly from the storage without going through the public api, this is only a few cases where this is desired. (maybe for link and data splitting?)
    * I think this should be done by the process manager

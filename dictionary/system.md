@@ -29,10 +29,10 @@ The web as a whole has reaped a lot of benefits by following part of REST princi
 
 ## Glossary
 
-- the system: A reference to the system that this document describes
-- io: A general name for the object that is passed to and returned from processors. Can also be referred to as the request/response object.
-- process manager: A central part of the system that handles the request/response
-- processors: A service that processes the io object and talks HTTP with the process manager. Can be a server written in any language, and can be automatic or manual (like a human)
+- [the system](system.md): A reference to the system that this document describes
+- [io](io.md): A general name for the object that is passed to and returned from processors. Can also be referred to as the request/response object.
+- [process manager](process-manager.md): A central part of the system that handles the request/response
+- [processors](processors.md): A web service that processes the io object and talks HTTP with the process manager. Can be a server written in any language, and can be automatic and/or manual (like a human)
 
 
 ## Design goals
@@ -68,7 +68,7 @@ The system should be designed to support the following:
 - Test environments
 - Transactions
 - Streaming
-- Robustness (survive killing the service and continue a process)
+- Robustness
 - Multiple media types
 - Multiple languages
 - Optimizing

@@ -60,6 +60,8 @@ function createServer(config) {
         body = Buffer.concat(body).toString()
         io.i.body = body
 
+        console.log(body)
+
         var result = {
           body: io
         }
