@@ -45,6 +45,8 @@ In addition to this we have some additional goals:
 
 The system should support the following:
 
+- Automation
+- Test environments
 - Transactions
 - Streaming
 - Robustness (survive killing the service and continue a process)
@@ -55,6 +57,18 @@ The system should support the following:
 - Logging
 - Traceability
 - Abstractions
+
+#### Automation
+
+Because of the uniform interface, the system is optimized to be able to replace manual parts fully or partially by automation. Manual slow processors (humans) can be replaced with faster human processors or the task may be broken apart divided into two or more parallel processes or two or more sequential processes.
+
+Here is where the main benefits of the system lies. It does not matter if the system have overhead, even mayor overhead in computer terms (seconds). What matters is that the process as a whole is more automated, and therefore cheaper. This frees up human labor to do things computers still cannot do.
+
+
+#### Test environments
+
+Test environments can be created easily, they exists as subdomains. You can limit access to these. A staging environment is special in the way that is kept up to date with the main environment. When you want to go public, it is simply a matter of renaming the persisted objects keys (URIs) to that of the target domain.
+
 
 #### Transactional support
 
@@ -93,7 +107,7 @@ Such self improvement may be:
 - Self replication
     - Self scaling
     - Balancing load
-- Speed optimizing (kernel update)
+- Self updating (kernel update)
 
 
 ##### Races
@@ -106,9 +120,11 @@ The process manager can do races between comparable processors and track usage t
 The system can do self replication when it reaches some set limits. It does this by spawning two new services that are completely idependent of the original system. It selects about half of the resources and distributes those to the new services. The original service now only handles routing to the new services. This adds latency, but the benefit is scalability. Self replication also adds robustness since a load balancer can route requests to each service.
 
 
-##### Self evolving
+##### Self updating
 
-The system can communicate with 
+The system will be self updating, processes can be run that analyzes commonly used processors, and queries those services if it has a media type of application/javascript (or other type if written in another language)
+
+The code can be placed for review, likely both by automatic tools like esprima, eslint etc, and manual human review. If this is considered to be general enough we can add this to the system kernel. Next time this processor should be run, it will run it locally instead of doing a network request. Races can further optimize to determine if function calls should be memoized or it is simply faster to do the operation. Normalization should be part of the cost/time of memoizing it.
 
 ---------------
 
@@ -133,15 +149,15 @@ Each process is exposed as a resource and monitoring of them can be built by cre
 Logging is built into the system, all requests are logged when incoming.
 
 
-### Abstractions
+#### Abstractions
 
 Different processors require different input and output. At the first level we have the processors that understand HTTP, these will receive an io object containing all HTTP information, like headers, status code etc.
 
 A layer on top of that might hide the HTTP semantics and just present the body of a HTTP io object. We can construct processors that moves the "conversation" to a higher level. This opens the process up to less knowledgeable processors. For instance a human might know only the plain text format. A developer on the other hand probably understands the HTTP semantics and therefore will receive the full HTTP io object.
 
-
-
 ------------
+
+
 
 ## Constraints
 
