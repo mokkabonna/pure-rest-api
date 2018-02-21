@@ -86,7 +86,7 @@ To achieve these design goals we have to limit the choices the processor of the 
 
 ### Normalization
 
-All input needs to be normalized by strict rules so that caching can be efficient. Normalization can be done server side or enforced in the api and performed on the client with code on demand.
+All input needs to be normalized by strict rules so that caching can be efficient. Normalization can be done server side or enforced in the api and performed on the client with code on demand. If this strategy is chosen, the request could be automatically rejected if not conforming to the normalization requirements.
 
 Consider the following:
 

@@ -11,6 +11,12 @@ The following could be information that is expected to be provided:
 - test: A json schema that describes the expected input.
 - require: an array of JSON paths that defines what parts of the io object it needs to do the processing.
 - output: an array of JSON paths that defines what parts of the io object it writes to
+- terminator: a boolean that indicates if the processor can terminate the request, that is, set a status code other than 2xx
+
+
+## Termination
+
+A process that have termination rights can set the relevant status code of 3xx or 4xx.
 
 
 ## Async
@@ -32,7 +38,7 @@ Even write operations can be done in parallel if they depend on non collision re
 
 ### Blocking
 
-A blocking processor is one that blocks all following steps in the process chain. This could be coarse grained authorization, input validation etc. It is recommended that this types of processing is done before costly steps (in time or processing power)
+A blocking processor is one that blocks all following steps in the process chain. This could be coarse grained authorization, input validation etc. It is recommended that these types of processing is done before costly steps (in time or processing power)
 
 
 -----------------
@@ -53,6 +59,3 @@ When the operator is code, a dynamic io representation could be constructed from
 A process operator is any entity that supports operating on a representation of the io object. This may be some code that automatically perform a task, or it may be a real-world entity. Most commonly a human, but not exclusively limited to humans.
 
 When the operator is a human, the process agent will typically present the input in a fashion that the operator understands. Typically this is rendered HTML, with javascript that enables a rich interaction to take place.
-
-
-
