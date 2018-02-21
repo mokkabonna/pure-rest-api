@@ -81,7 +81,7 @@ Read more about [additional goals](additional-goals.md)
 
 ## Constraints
 
-To achieve these design goals we have to limit the choices the processor of the io have on the io in any given stage of any process.
+To achieve these design goals we have to limit the choices the processor of the io have on the io at any given stage of any process.
 
 
 ### Normalization

@@ -43,4 +43,4 @@ The manager makes sure to set the correct vary header based upon content negotia
 
 All responses are cached by the manager, and the next time such a equivalent request is made it is instead served from the cache.
 
-http://martinhansen.io/products/1
+

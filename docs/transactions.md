@@ -34,7 +34,7 @@ FIX: For http processes, most should be handled by the system itself, not be sep
 ## Order of process
 
 Authentication
-Method and URI based Authorization (possibly handled by the root process?) This can also be non blocking, but is required to pass before signing off on the response.
+Method and URI based Authorization (possibly handled by the root process?) This can be non blocking, but is required to pass before signing off on the response. For costly and/or long running complex processes it should be blocking. This is to prevent the initiation of an expensive operation.
 Redirection
 Validation
 Rewriting URI
