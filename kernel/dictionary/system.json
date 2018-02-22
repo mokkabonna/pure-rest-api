@@ -21,11 +21,11 @@
     },
     "links": [{
       "rel": "related",
-      "href": "/system/processes",
+      "href": "./processes",
       "title": "All processes"
     }, {
       "rel": "related",
-      "href": "/system/routes",
+      "href": "./routes",
       "title": "All routes"
     }]
   }

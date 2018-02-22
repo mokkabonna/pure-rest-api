@@ -38,6 +38,18 @@ app.get('/', function(req, res) {
   })
 })
 
+app.post('/uri-normalizer', function(req, res) {
+  redirectToNormalized(req.body)
+  res.send(req.body)
+})
+
+function redirectToNormalized(io) {
+  if (io.i.uri.path.some(p => p === '')) {
+    io.o.statusCode = 302
+    io.o.headers.location = URI.normalize(io.i.uri.base + io.i.uri.pathString.replace(/[/]$/, '') + io.i.uri.queryString)
+  }
+}
+
 app.get('/hypermedia-enricher', function(req, res) {
   res.send(selfLink)
 })
@@ -71,11 +83,13 @@ function hyperAllTheThings(io) {
     }
 
     links.forEach(function(link) {
+      //treat trailing slashes same as without
       if (link.href[0] === '/') {
-        link.href = io.i.uri.base + link.href
+        link.href = (io.i.uri.base + link.href).replace(/[/]$/, '')
       } else if (link.href.slice(0, 3) === '../') {
-        console.log(URI.resolve(io.i.uri.complete, link.href))
-        link.href = URI.resolve(io.i.uri.complete, link.href)
+        link.href = URI.resolve(io.i.uri.complete + '/', link.href).replace(/[/]$/, '')
+      } else if (link.href.slice(0, 2) === './') {
+        link.href = URI.resolve(io.i.uri.complete + '/', link.href).replace(/[/]$/, '')
       }
     })
   })

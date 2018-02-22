@@ -11,6 +11,7 @@ const Keyv = require('keyv')
 const Problem = require('api-problem')
 
 const readFile = util.promisify(fs.readFile)
+const isSchema = val => _.isPlainObject(val) || val === true || val === false
 
 var processStore = new Map()
 var ajv = new Ajv()
@@ -18,34 +19,11 @@ var ajv = new Ajv()
 async function createServer(config) {
   config = config || {}
 
-  if (!config.routes) throw new Error('You must initialize the server with relevant steps.')
   const store = new Map()
-  const dictionary = [] //contains all schemas and
+  const dictionary = []
   const routes = []
 
-  function initializeServer(config) {
-    var systemPath = `http://${config.manages}/${config.systemPath}`
-    return Promise.all([
-      store.set(`http://${config.manages}/`, {
-        title: 'Welcome'
-      }),
-      store.set(systemPath, {
-        title: 'System manager'
-      }),
-      store.set(systemPath + '/processes', {
-        title: 'Process overview'
-      }),
-      store.set(systemPath + '/dictionary', {
-        title: 'System dictionary',
-        dictionary: dictionary
-      }),
-      store.set(systemPath + '/routes', {
-        title: 'Routes'
-      })
-    ])
-  }
-
-  await initializeServer(config)
+  await initializeServer(store, config)
 
   return {
     server: http.createServer(async function(request, response) {
@@ -115,8 +93,8 @@ async function createServer(config) {
   }
 
   async function handleNoRoute(io, response, store) {
-    var isDictionaryCall = io.i.uri.path[1] === 'dictionary'
-    var isRouteCall = io.i.uri.path[1] === 'routes'
+    var isDictionaryCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'dictionary' && io.i.uri.path.length === 3
+    var isRouteCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'routes' && io.i.uri.path.length === 3
     // default REST handling
     if (io.i.method === 'PUT') {
       await store.set(io.i.uri.complete, io.i.body)
@@ -127,7 +105,7 @@ async function createServer(config) {
       }
       const wasCreated = io.o.body.data !== undefined
       response.writeHead(wasCreated ? 201 : 204)
-      response.end('PUT successful')
+      response.end('PUT successful') //TODO better handling here according to spec
     } else if (io.i.method === 'GET' && io.o.statusCode === 200) {
       response.end(JSON.stringify(io.o.body))
     } else {
@@ -157,10 +135,13 @@ async function handleRoute(io, route, response) {
   //TODO: enable parallel processing
   for (let i = 0; i < allSteps.length; i++) {
     try {
-      result = await got.post(allSteps[i].uri, {
-        json: true,
-        body: result.body
-      })
+      let step = allSteps[i]
+      if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, io.i))) {
+        result = await got.post(step.uri, {
+          json: true,
+          body: result.body
+        })
+      }
     } catch (e) {
       throw new Problem(500, `Could not process step ${i}`, {
         httpError: e
@@ -170,9 +151,8 @@ async function handleRoute(io, route, response) {
 
   var output = result.body.o
 
-  response.writeHead(output.statusCode || 200, {
-    'X-Powered-By': 'my library!'
-  })
+
+  response.writeHead(output.statusCode || 200, output.headers)
 
   response.end(JSON.stringify(output.body))
 }
@@ -208,6 +188,27 @@ function createProcessInfoObject() {
     endTime: null,
     steps: []
   }
+}
+
+function initializeServer(store, config) {
+  var systemPath = `http://${config.manages}/${config.systemPath}`
+  return Promise.all([
+    store.set(`http://${config.manages}/`, {
+      title: 'Welcome'
+    }),
+    store.set(systemPath, {
+      title: 'System manager'
+    }),
+    store.set(systemPath + '/processes', {
+      title: 'Process overview'
+    }),
+    store.set(systemPath + '/dictionary', {
+      title: 'System dictionary',
+    }),
+    store.set(systemPath + '/routes', {
+      title: 'Routes'
+    })
+  ])
 }
 
 module.exports = createServer

@@ -37,7 +37,9 @@ function createIOObject(req, res) {
 }
 
 function createResponseObject(res) {
-  return {}
+  return {
+    headers: {}
+  }
 }
 
 function createRequestObject(req, parsers = [], ajv) {
@@ -51,12 +53,14 @@ function createRequestObject(req, parsers = [], ajv) {
   var path = pathQuery[0]
   var query = pathQuery[1]
 
+
   var uri = {
     scheme: 'http',
     host: host.split('.').reverse(),
     port: port || 80,
-    path: path.slice(1).split('/').filter(notEmpty),
-    query: query || {}
+    path: path.slice(1).split('/'),
+    pathString: path,
+    queryString: query || ''
   }
 
   var components = {
@@ -66,8 +70,8 @@ function createRequestObject(req, parsers = [], ajv) {
   }
 
   uri.base = URI.serialize(components).replace(/\/$/, '')
-  components.path = path,
-    components.query = query
+  components.path = path
+  components.query = query
 
   uri.complete = URI.serialize(components)
 

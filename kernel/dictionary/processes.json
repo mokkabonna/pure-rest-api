@@ -22,6 +22,9 @@
         "type": "array"
       }
     },
-    "links": []
+    "links": [{
+      "rel": "up",
+      "href": "../"
+    }]
   }
 }

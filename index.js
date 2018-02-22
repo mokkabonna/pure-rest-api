@@ -25,10 +25,7 @@ processManager({
   manages: 'martinhansen.io',
   systemPath: 'system',
   mountedAt: 'c:\\users\\marti\\pure-rest-api\\data',
-  persistURI: 'file:///localhost/c:/users/marti/pure-rest-api/data',
-  beforeEach: [],
-  afterEach: [],
-  routes: []
+  persistURI: 'file:///localhost/c:/users/marti/pure-rest-api/data'
 }).then(function(manager) {
   return manager.server.listen(port, () => {
     console.log('Server listening on port 80!')

@@ -8,6 +8,8 @@
     }
   },
   "steps": [{
+    "uri": "http://localhost:3003/uri-normalizer"
+  }, {
     "uri": "http://localhost:3003/hypermedia-enricher"
   }]
 }
