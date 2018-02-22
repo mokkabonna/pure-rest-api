@@ -1,0 +1,27 @@
+{
+  "describes": {
+    "properties": {
+      "uri": {
+        "properties": {
+          "path": {
+            "maxItems": 3,
+            "minItems": 3,
+            "items": [{
+              "const": "system"
+            }, {
+              "const": "routes"
+            }, true]
+          }
+        }
+      }
+    }
+  },
+  "schema": {
+    "type": "object",
+    "properties": {
+      "test": {
+        "type": "object"
+      }
+    }
+  }
+}

@@ -14,11 +14,10 @@ var linkExpander = {
     description: 'I resolve root URIs and replace them with absolute URIs based on the domain name.'
   },
   links: [
-    {
-      rel: 'self',
-      href: '/self-link-adder'
-    }
-  ]
+  {
+    rel: 'self',
+    href: '/self-link-adder'
+  }]
 }
 
 var selfLink = {
@@ -27,11 +26,10 @@ var selfLink = {
     description: 'I add self links to resources that does not have them explicitly set.'
   },
   links: [
-    {
-      rel: 'self',
-      href: '/links-expander'
-    }
-  ]
+  {
+    rel: 'self',
+    href: '/links-expander'
+  }]
 }
 
 app.get('/', function(req, res) {
@@ -45,53 +43,45 @@ app.get('/hypermedia-enricher', function(req, res) {
 })
 
 app.post('/hypermedia-enricher', function(req, res) {
-  var links = req.body.response.body.links
-
-  var selfLinks = links.filter(l => /(^|\s)self(\s|$)/.test(l.rel))
-  if (!selfLinks.length) {
-    links.push({rel: 'self', href: req.body.request.operation.url.complete})
-  }
-
-  links.forEach(function(link) {
-    if (link.href[0] === '/') {
-      link.href = req.body.request.operation.url.base + link.href
-    }
+  hyperAllTheThings(req.body).then(function() {
+    res.send(req.body)
+  }).catch(function(err) {
+    res.status(500).send()
   })
+})
 
+function hyperAllTheThings(io) {
+  var links = io.o.body.links
   var viaLinks = links.filter(l => l.rel === 'via')
 
-  Promise.all(viaLinks.map(function(link) {
+  return Promise.all(viaLinks.map(function(link) {
     var options = {
       json: true
     }
     return got(link.href, options).then(function(response) {
-      req.body.sources[link.href] = response.body
+      io.sources[link.href] = response.body
     })
   })).then(function() {
-    // res.set('cache-control', 'public')
-    // res.set('expires', new Date().setMonth(4))
-    res.send(req.body)
-  }).catch(function(err) {
-    res.status(500).send(err)
+    var selfLinks = links.filter(l => /(^|\s)self(\s|$)/.test(l.rel))
+    if (!selfLinks.length) {
+      links.push({
+        rel: 'self',
+        href: io.i.uri.complete
+      })
+    }
+
+    links.forEach(function(link) {
+      if (link.href[0] === '/') {
+        link.href = io.i.uri.base + link.href
+      } else if (link.href.slice(0, 3) === '../') {
+        console.log(URI.resolve(io.i.uri.complete, link.href))
+        link.href = URI.resolve(io.i.uri.complete, link.href)
+      }
+    })
   })
+}
 
-})
 
 
-app.post('/organizer', function(req, res) {
-  var body = req.body.request.body
-
-  if (body.links) {
-    // TODO move this logic of handling status codes to the process manager maybe?
-    req.body.response.statusCode = 201
-    req.body.response.body = body
-    res.send(req.body)
-  } else {
-    req.body.response.statusCode = 400
-    req.body.response.body = 'You need a body'
-    res.send(req.body)
-  }
-
-})
 
 module.exports = app

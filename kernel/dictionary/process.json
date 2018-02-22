@@ -1,0 +1,30 @@
+{
+  "describes": {
+    "properties": {
+      "uri": {
+        "properties": {
+          "path": {
+            "maxItems": 3,
+            "minItems": 3,
+            "items": [{
+              "const": "system"
+            }, {
+              "const": "processes"
+            }, true]
+          }
+        }
+      }
+    }
+  },
+  "schema": {
+    "required": ["startTime", "endTime"],
+    "properties": {
+      "startTime": {
+        "type": "string"
+      },
+      "endTime": {
+        "type": ["null", "string"]
+      }
+    }
+  }
+}

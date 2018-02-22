@@ -1,0 +1,27 @@
+{
+  "describes": {
+    "properties": {
+      "uri": {
+        "properties": {
+          "path": {
+            "maxItems": 2,
+            "minItems": 2,
+            "items": [{
+              "const": "system"
+            }, {
+              "const": "processes"
+            }]
+          }
+        }
+      }
+    }
+  },
+  "schema": {
+    "properties": {
+      "items": {
+        "type": "array"
+      }
+    },
+    "links": []
+  }
+}

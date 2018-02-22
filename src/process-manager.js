@@ -1,124 +1,212 @@
 const http = require('http')
-const got = require('got')
+const got = require('./got')
 const fs = require('fs')
 const path = require('path')
 const util = require('util')
+const _ = require('lodash')
 const uuidv4 = require('uuid/v4')
 const Ajv = require('ajv')
 const ioUtil = require('./utils/io')
 const Keyv = require('keyv')
-
-
+const Problem = require('api-problem')
 
 const readFile = util.promisify(fs.readFile)
 
 var processStore = new Map()
 var ajv = new Ajv()
 
-
-function createClient(mountedAt) {
-  return {
-    get: function(uri, mediaType, language) {
-      return new Promise(function(resolve, reject) {
-        var fileUri = path.join(mountedAt, uri.scheme, String(uri.port), uri.host.join('/'), '_root', uri.path.join('/'))
-        readFile(fileUri).then(resolve, reject)
-      })
-    }
-  }
-}
-
-
-function createServer(config) {
+async function createServer(config) {
   config = config || {}
 
   if (!config.routes) throw new Error('You must initialize the server with relevant steps.')
-  const store = new Keyv()
-  const dictionary = new Keyv()
-  const relationships = new Keyv()
+  const store = new Map()
+  const dictionary = [] //contains all schemas and
+  const routes = []
 
-  store.set('http://' + config.manages + '/system', {
-    title: 'System manager'
-  })
+  function initializeServer(config) {
+    var systemPath = `http://${config.manages}/${config.systemPath}`
+    return Promise.all([
+      store.set(`http://${config.manages}/`, {
+        title: 'Welcome'
+      }),
+      store.set(systemPath, {
+        title: 'System manager'
+      }),
+      store.set(systemPath + '/processes', {
+        title: 'Process overview'
+      }),
+      store.set(systemPath + '/dictionary', {
+        title: 'System dictionary',
+        dictionary: dictionary
+      }),
+      store.set(systemPath + '/routes', {
+        title: 'Routes'
+      })
+    ])
+  }
 
-  store.set('http://' + config.manages + '/system/processes', {
-    title: 'Process overview'
-  })
+  await initializeServer(config)
 
   return {
     server: http.createServer(async function(request, response) {
-      let body = []
-      var io = ioUtil.createIOObject(request, response)
-      var url = io.i.uri.complete
-
-
+      const body = []
+      const io = ioUtil.createIOObject(request, response)
+      const uri = io.i.uri.complete
 
       request.on('error', (err) => {
         console.error(err)
       }).on('data', (chunk) => {
         body.push(chunk)
-      }).on('end', async() => {
-        body = Buffer.concat(body).toString()
-        io.i.body = body
-
-        console.log(body)
-
-        var result = {
-          body: io
-        }
-
+      }).on('end', async () => {
         try {
-          var route = config.routes.find(r => {
-            return ajv.validate(r.test, io.i.uri)
-          })
+          io.i.body = Buffer.concat(body).toString()
+          io.i.body = attemptParseBody(io.i, response)
 
-          var allSteps = config.beforeEach.concat(route.steps).concat(config.afterEach)
-          io.o.body = await store.get(io.i.uri.complete)
-
-
-          var processCollection = io.i.uri.base + '/system/processes/' + new Date()
-          var processUri = processCollection + '/' + uuidv4()
-
-          var processInfo = {
-            data: {
-              startTime: new Date(),
-              endTime: null,
-              steps: []
-            },
-            links: [{
-              rel: 'self',
-              href: processUri
-            }]
-          }
-
-          await store.set(processUri, processInfo)
-
-          for (let i = 0; i < allSteps.length; i++) {
-            result = await got.post(allSteps[i].uri, {
-              json: true,
-              body: result.body
-            })
-          }
-
-          processInfo.data.endTime = new Date()
-
-          await store.set(processUri, processInfo)
-
-          var output = result.body.o
-
-          response.writeHead(output.statusCode || 200, {
-            'X-Powered-By': 'my library!'
-          })
-
-          response.end(JSON.stringify(output.body))
+          const endProcess = await createAndPersistProcessInformation(io)
+          await setOutputFromStore(io, uri)
+          await handleRequest(io, response)
+          await endProcess()
         } catch (e) {
-          response.writeHead(500, {
-            'X-Powered-By': 'my library!'
-          })
-
-          response.end('Error: ' + e.message)
+          handleNetworkError(e, response)
         }
       })
     })
+  }
+
+  async function createAndPersistProcessInformation(io) {
+    var processUri = getProcessURI(io.i.uri.base)
+    var processInfo = createProcessInfoObject(io)
+
+    // store process information
+    try {
+      await store.set(processUri, processInfo)
+      return async function endProcess() {
+        //Update process information
+        processInfo.endTime = new Date()
+
+        try {
+          await store.set(processUri, processInfo)
+        } catch (e) {
+          throw new Error('Could not store end process information.')
+        }
+      }
+    } catch (e) {
+      throw new Error('Could not store process information.')
+    }
+
+  }
+
+  async function setOutputFromStore(io, completeURI) {
+    const hasResource = await store.has(completeURI)
+    const resourceData = await store.get(completeURI)
+    io.o.statusCode = hasResource ? (resourceData === undefined ? 410 : 200) : 404
+
+    const descriptions = dictionary.filter(d => ajv.validate(d.describes, io.i)).map(d => d.schema)
+
+    io.o.body = {
+      data: resourceData,
+      links: descriptions.length ? _.flatten(descriptions.map(d => d.links)) : []
+    }
+  }
+
+  function getProcessURI(base) {
+    const processCollection = base + `/${config.systemPath}/processes/` + new Date().toISOString()
+    return processCollection + '/' + _.uniqueId('process').replace('process', '')
+  }
+
+  async function handleNoRoute(io, response, store) {
+    var isDictionaryCall = io.i.uri.path[1] === 'dictionary'
+    var isRouteCall = io.i.uri.path[1] === 'routes'
+    // default REST handling
+    if (io.i.method === 'PUT') {
+      await store.set(io.i.uri.complete, io.i.body)
+      if (isDictionaryCall) {
+        dictionary.push(io.i.body)
+      } else if (isRouteCall) {
+        routes.push(io.i.body)
+      }
+      const wasCreated = io.o.body.data !== undefined
+      response.writeHead(wasCreated ? 201 : 204)
+      response.end('PUT successful')
+    } else if (io.i.method === 'GET' && io.o.statusCode === 200) {
+      response.end(JSON.stringify(io.o.body))
+    } else {
+      new Problem(404, 'No such resource.').send(response)
+    }
+  }
+
+  async function handleRequest(io, response) {
+    var route = routes.find(r => ajv.validate(r.test, io.i.uri))
+    if (route) {
+      await handleRoute(io, route, response)
+    } else {
+      await handleNoRoute(io, response, store)
+    }
+  }
+
+}
+
+async function handleRoute(io, route, response) {
+  var allSteps = route.steps
+
+  var result = {
+    body: io
+  }
+
+  //Execute all steps in order
+  //TODO: enable parallel processing
+  for (let i = 0; i < allSteps.length; i++) {
+    try {
+      result = await got.post(allSteps[i].uri, {
+        json: true,
+        body: result.body
+      })
+    } catch (e) {
+      throw new Problem(500, `Could not process step ${i}`, {
+        httpError: e
+      })
+    }
+  }
+
+  var output = result.body.o
+
+  response.writeHead(output.statusCode || 200, {
+    'X-Powered-By': 'my library!'
+  })
+
+  response.end(JSON.stringify(output.body))
+}
+
+function attemptParseBody(input, response) {
+  if (input.headers['content-type'] === 'application/json') {
+    try {
+      return JSON.parse(input.body)
+    } catch (e) {
+      new Problem(400, 'Invalid JSON in the body.').send(response)
+      return
+    }
+  } else {
+    return input.body
+  }
+}
+
+function handleNetworkError(e, response) {
+  response.setHeader('X-Powered-By', 'my library!')
+  if (e instanceof Problem) {
+    e.send(response)
+  } else {
+    new Problem(500, 'An unexpected error occured.', {
+      detail: e.message,
+      stack: e.stack.split('\n')
+    }).send(response)
+  }
+}
+
+function createProcessInfoObject() {
+  return {
+    startTime: new Date(),
+    endTime: null,
+    steps: []
   }
 }
 

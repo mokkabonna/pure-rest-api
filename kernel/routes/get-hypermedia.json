@@ -1,0 +1,13 @@
+{
+  "title": "Standard GET with hypermedia",
+  "test": {
+    "properties": {
+      "method": {
+        "const": "GET"
+      }
+    }
+  },
+  "steps": [{
+    "uri": "http://localhost:3003/hypermedia-enricher"
+  }]
+}

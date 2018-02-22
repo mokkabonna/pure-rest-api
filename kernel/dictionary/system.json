@@ -1,0 +1,32 @@
+{
+  "describes": {
+    "properties": {
+      "uri": {
+        "properties": {
+          "path": {
+            "maxItems": 1,
+            "minItems": 1,
+            "items": [{
+              "const": "system"
+            }]
+          }
+        }
+      }
+    }
+  },
+  "schema": {
+    "required": ["title"],
+    "properties": {
+      "title": true
+    },
+    "links": [{
+      "rel": "related",
+      "href": "/system/processes",
+      "title": "All processes"
+    }, {
+      "rel": "related",
+      "href": "/system/routes",
+      "title": "All routes"
+    }]
+  }
+}
