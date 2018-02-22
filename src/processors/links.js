@@ -39,7 +39,6 @@ app.get('/', function(req, res) {
 })
 
 app.post('/uri-normalizer', function(req, res) {
-  console.log('normalizing uri')
   redirectToNormalized(req.body)
   res.send(req.body)
 })

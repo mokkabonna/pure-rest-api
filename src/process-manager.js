@@ -20,8 +20,8 @@ async function createServer(config) {
   config = config || {}
 
   const store = new Map()
-  const dictionary = []
-  const routes = []
+  const dictionary = {}
+  const routes = [] // TODO make object
 
   await initializeServer(store, config)
 
@@ -35,7 +35,7 @@ async function createServer(config) {
         console.error(err)
       }).on('data', (chunk) => {
         body.push(chunk)
-      }).on('end', async () => {
+      }).on('end', async() => {
         try {
           io.i.body = Buffer.concat(body).toString()
           io.i.body = attemptParseBody(io.i, response)
@@ -86,12 +86,22 @@ async function createServer(config) {
     const resourceData = await store.get(completeURI)
     io.o.statusCode = hasResource ? (resourceData === undefined ? 410 : 200) : 404
 
-    const descriptions = dictionary.filter(d => ajv.validate(d.describes, io.i)).map(d => d.schema)
-    const links = descriptions.length ? _.compact(_.flatten(descriptions.map(d => d.links))) : []
+
+    //TODO, this might better if moved out to a processor
+    const definitions = _.pickBy(dictionary, d => ajv.validate(d.noun, io.i))
+    const links = _.compact(_.flatten(_.map(definitions, (d, uri) => {
+      //TODO I link to the whole dictionary now, I should link to the schema only
+      return [{
+        rel: 'describedBy',
+        href: uri
+      }].concat(d.schema.links)
+    })))
+
     io.o.body = {
       data: resourceData,
       links: links
     }
+
   }
 
   function getProcessURI(base) {
@@ -102,11 +112,11 @@ async function createServer(config) {
   async function handleNoRoute(io, response, store) {
     var isDictionaryCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'dictionary' && io.i.uri.path.length === 3
     var isRouteCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'routes' && io.i.uri.path.length === 3
-    // default REST handling
+      // default REST handling
     if (io.i.method === 'PUT') {
       await store.set(io.i.uri.complete, io.i.body)
       if (isDictionaryCall) {
-        dictionary.push(io.i.body)
+        dictionary[io.i.uri.complete] = io.i.body
       } else if (isRouteCall) {
         routes.push(io.i.body)
       }
