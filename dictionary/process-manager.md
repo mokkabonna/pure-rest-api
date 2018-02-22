@@ -43,4 +43,14 @@ The manager makes sure to set the correct vary header based upon content negotia
 
 All responses are cached by the manager, and the next time such a equivalent request is made it is instead served from the cache.
 
+## Receive Input
 
+Experimental:
+
+When the system receives a PUT(/POST ?) request, it will enforce that the entity is properly described. For most data, this means a JSON schema. But it could in theory be any description. This is important, since it allows for self organizing (or by suggesting it to the administrator) of classes of entities. When receiving a entity, it can organize the entity based upon what it is. It allows for self categorization.
+
+Here is an example:
+
+Say you have a shop with many products. All products share some properties, like a price and a name. But some products like clothes have a size variant in addition. Now the system could create /products/clothes in addition to /products. This could be done manually, by suggestion from the system, or automatically by the system.
+
+So for all resources that are organized under /products share the same basic properties.
