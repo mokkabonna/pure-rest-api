@@ -4,8 +4,7 @@
       "uri": {
         "properties": {
           "path": {
-            "maxItems": 3,
-            "minItems": 3,
+            "minItems": 4,
             "items": [{
               "const": "system"
             }, {
@@ -25,6 +24,10 @@
       "endTime": {
         "type": ["null", "string"]
       }
-    }
+    },
+    "links": [{
+      "rel": "collection",
+      "href": "/system/processes"
+    }]
   }
 }

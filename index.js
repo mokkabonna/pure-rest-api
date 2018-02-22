@@ -70,11 +70,17 @@ allStarted.then(function() {
 
           return streamToPromise(stream)
         }),
-        // got.put(publicUrl + '/system/routes/get-hypermedia', fs.readFileSync('kernel/routes/get-hypermedia.json', 'utf8')),
-        // got.put(publicUrl + '/system/routes/put-default', fs.readFileSync('kernel/routes/put-default.json', 'utf8')),
       ])
     })
   })
+}).then(function() {
+  console.time('stress-test')
+  return Promise.all(Array.from(new Array(10)).map(function() {
+    return got('http://martinhansen.io')
+  }))
+}).then(function() {
+  console.timeEnd('stress-test')
+  console.log('___Server filled___')
 }).catch(function(err) {
   console.log(err)
   console.log('Could not start servers.')

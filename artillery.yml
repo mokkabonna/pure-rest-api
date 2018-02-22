@@ -1,0 +1,12 @@
+config:
+  target: 'http://martinhansen.io'
+  http:
+    pool: 10 # All HTTP requests from all virtual users will be sent over the same 10 connections
+  phases:
+    - duration: 10
+      arrivalRate: 1000
+  defaults:
+scenarios:
+  - flow:
+    - get:
+        url: "/"

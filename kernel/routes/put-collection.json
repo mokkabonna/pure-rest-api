@@ -1,0 +1,22 @@
+{
+  "title": "Standard PUT to a collection",
+  "test": {
+    "properties": {
+      "method": {
+        "const": "PUT"
+      },
+      "uri": {
+        "properties": {
+          "path": {
+            "minItems": 3,
+            "maxItems": 3,
+            "items": [true, {
+              "const": "processesfsda"
+            }]
+          }
+        }
+      }
+    }
+  },
+  "steps": []
+}

@@ -15,6 +15,10 @@
       "rel": "related",
       "href": "../system",
       "title": "System information"
+    }, {
+      "rel": "gloassary",
+      "href": "/system/dictionary",
+      "title": "All definitions in this domain."
     }]
   }
 }

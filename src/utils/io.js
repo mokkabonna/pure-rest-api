@@ -2,7 +2,10 @@ const traverse = require('json-schema-traverse')
 var pointer = require('json-pointer')
 var URI = require('uri-js')
 var uuidv4 = require('uuid/v4')
+
+var safeVerbs = ['HEAD', 'GET']
 const notEmpty = s => s !== ''
+const isSafe = method => safeVerbs.indexOf(method) !== -1
 
 var transformers = {
   number: function(val) {
@@ -37,9 +40,7 @@ function createIOObject(req, res) {
 }
 
 function createResponseObject(res) {
-  return {
-    headers: {}
-  }
+  return {headers: {}}
 }
 
 function createRequestObject(req, parsers = [], ajv) {
@@ -47,12 +48,13 @@ function createRequestObject(req, parsers = [], ajv) {
 
   var hostPort = req.headers.host.split(':')
   var host = hostPort[0]
-  var port = hostPort[1] ? parseInt(hostPort[1]) : null
+  var port = hostPort[1]
+    ? parseInt(hostPort[1])
+    : null
 
   var pathQuery = req.url.split('?')
   var path = pathQuery[0]
   var query = pathQuery[1]
-
 
   var uri = {
     scheme: 'http',
@@ -76,8 +78,9 @@ function createRequestObject(req, parsers = [], ajv) {
   uri.complete = URI.serialize(components)
 
   request.headers = req.headers
-  request.method = req.method,
-    request.uri = uri
+  request.method = req.method
+  request.isSafe = isSafe(req.method)
+  request.uri = uri
 
   request.body = req.body
 

@@ -20,7 +20,9 @@ async function createServer(config) {
   config = config || {}
 
   const store = new Map()
+  const cache = new Map()
   const dictionary = {}
+  var processDefinition
   const routes = [] // TODO make object
 
   await initializeServer(store, config)
@@ -35,19 +37,40 @@ async function createServer(config) {
         console.error(err)
       }).on('data', (chunk) => {
         body.push(chunk)
-      }).on('end', async() => {
+      }).on('end', async () => {
         try {
           io.i.body = Buffer.concat(body).toString()
           io.i.body = attemptParseBody(io.i, response)
 
-          var route = routes.find(r => ajv.validate(r.test, io.i.uri))
+          var route = routes.find(r => ajv.validate(r.test, io.i))
           const endProcess = await createAndPersistProcessInformation(io)
           await setOutputFromStore(io, uri)
+
+          var cached = cache.get(io.i.uri.complete)
+          if (io.i.isSafe && cached) {
+            response.writeHead(cached.o.statusCode, {
+              ...cached.o.headers,
+              age: cached.cachedDate
+            })
+            response.end(await JSON.stringify(cached.o.body))
+          }
 
           if (route) {
             await handleRoute(io, route, response)
           } else {
             await handleNoRoute(io, response, store)
+          }
+
+          if (!io.i.isSafe) {
+            await cache.delete(io.i.uri.complete)
+          } else {
+            let cacheObject = {
+              cachedDate: new Date(),
+              o: io.o
+            }
+
+            cacheObject.o.headers['last-modified'] = new Date()
+            await cache.set(io.i.uri.complete, cacheObject)
           }
 
           await endProcess()
@@ -59,12 +82,26 @@ async function createServer(config) {
   }
 
   async function createAndPersistProcessInformation(io) {
-    var processUri = getProcessURI(io.i.uri.base)
+    const processCollection = io.i.uri.base + `/${config.systemPath}/processes/` + new Date().toISOString().replace(/:\d\d\.\d\d\dZ$/, '')
+    var processUri = processCollection + '/' + _.uniqueId('process').replace('process', '')
     var processInfo = createProcessInfoObject(io)
 
     // store process information
     try {
+
+      if (processDefinition) {
+        var collection = await store.get(processCollection)
+        await store.set(processCollection, (collection || []).concat([processUri]))
+        var hasLink = processDefinition.schema.links.find(l => l.href === processCollection && l.rel === 'item')
+        if (!hasLink) {
+          processDefinition.schema.links.push({rel: 'item', href: processCollection})
+        }
+      } else {
+        processDefinition = _.find(dictionary, (d, uri) => /processes$/.test(uri))
+      }
+
       await store.set(processUri, processInfo)
+
       return async function endProcess() {
         //Update process information
         processInfo.endTime = new Date()
@@ -76,7 +113,7 @@ async function createServer(config) {
         }
       }
     } catch (e) {
-      throw new Error('Could not store process information.')
+      throw new Error('Could not store process information.' + e.message)
     }
 
   }
@@ -84,17 +121,23 @@ async function createServer(config) {
   async function setOutputFromStore(io, completeURI) {
     const hasResource = await store.has(completeURI)
     const resourceData = await store.get(completeURI)
-    io.o.statusCode = hasResource ? (resourceData === undefined ? 410 : 200) : 404
-
+    io.o.statusCode = hasResource
+      ? (
+        resourceData === undefined
+        ? 410
+        : 200)
+      : 404
 
     //TODO, this might better if moved out to a processor
     const definitions = _.pickBy(dictionary, d => ajv.validate(d.noun, io.i))
     const links = _.compact(_.flatten(_.map(definitions, (d, uri) => {
       //TODO I link to the whole dictionary now, I should link to the schema only
-      return [{
-        rel: 'describedBy',
-        href: uri
-      }].concat(d.schema.links)
+      return [
+        {
+          rel: 'describedBy',
+          href: uri
+        }
+      ].concat(d.schema.links)
     })))
 
     io.o.body = {
@@ -104,15 +147,11 @@ async function createServer(config) {
 
   }
 
-  function getProcessURI(base) {
-    const processCollection = base + `/${config.systemPath}/processes/` + new Date().toISOString()
-    return processCollection + '/' + _.uniqueId('process').replace('process', '')
-  }
-
   async function handleNoRoute(io, response, store) {
     var isDictionaryCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'dictionary' && io.i.uri.path.length === 3
     var isRouteCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'routes' && io.i.uri.path.length === 3
-      // default REST handling
+    // default REST handling
+
     if (io.i.method === 'PUT') {
       await store.set(io.i.uri.complete, io.i.body)
       if (isDictionaryCall) {
@@ -121,7 +160,10 @@ async function createServer(config) {
         routes.push(io.i.body)
       }
       const wasCreated = io.o.body.data !== undefined
-      response.writeHead(wasCreated ? 201 : 204)
+      response.writeHead(
+        wasCreated
+        ? 201
+        : 204)
       response.end('PUT successful') //TODO better handling here according to spec
     } else if (io.i.method === 'GET' && io.o.statusCode === 200) {
       response.end(JSON.stringify(io.o.body))
@@ -150,9 +192,7 @@ async function handleRoute(io, route, response) {
         })
       }
     } catch (e) {
-      throw new Problem(500, `Could not process step ${i}`, {
-        httpError: e
-      })
+      throw new Problem(500, `Could not process step ${i}`, {httpError: e})
     }
   }
 
@@ -186,31 +226,17 @@ function handleNetworkError(e, response) {
 }
 
 function createProcessInfoObject(io) {
-  return {
-    startTime: new Date(),
-    endTime: null,
-    i: io.i
-  }
+  return {startTime: new Date(), endTime: null, i: io.i}
 }
 
 function initializeServer(store, config) {
   var systemPath = `http://${config.manages}/${config.systemPath}`
   return Promise.all([
-    store.set(`http://${config.manages}/`, {
-      title: 'Welcome'
-    }),
-    store.set(systemPath, {
-      title: 'System manager'
-    }),
-    store.set(systemPath + '/processes', {
-      title: 'Process overview'
-    }),
-    store.set(systemPath + '/dictionary', {
-      title: 'System dictionary',
-    }),
-    store.set(systemPath + '/routes', {
-      title: 'Routes'
-    })
+    store.set(`http://${config.manages}/`, {title: 'Welcome'}),
+    store.set(systemPath, {title: 'System manager'}),
+    store.set(systemPath + '/processes', {title: 'Process overview'}),
+    store.set(systemPath + '/dictionary', {title: 'System dictionary'}),
+    store.set(systemPath + '/routes', {title: 'Routes'})
   ])
 }
 
