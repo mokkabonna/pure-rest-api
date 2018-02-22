@@ -20,6 +20,10 @@
       "title": true
     },
     "links": [{
+      "rel": "up",
+      "href": "../",
+      "title": "Home"
+    }, {
       "rel": "related",
       "href": "./processes",
       "title": "All processes"

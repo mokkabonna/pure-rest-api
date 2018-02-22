@@ -8,6 +8,21 @@
     }
   },
   "steps": [{
+    "test": {
+      "properties": {
+        "uri": {
+          "properties": {
+            "path": {
+              "minItems": 2,
+              "items": true,
+              "additionalItems": {
+                "const": ""
+              }
+            }
+          }
+        }
+      }
+    },
     "uri": "http://localhost:3003/uri-normalizer"
   }, {
     "uri": "http://localhost:3003/hypermedia-enricher"

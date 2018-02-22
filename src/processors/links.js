@@ -39,6 +39,7 @@ app.get('/', function(req, res) {
 })
 
 app.post('/uri-normalizer', function(req, res) {
+  console.log('normalizing uri')
   redirectToNormalized(req.body)
   res.send(req.body)
 })
@@ -78,7 +79,7 @@ function hyperAllTheThings(io) {
     if (!selfLinks.length) {
       links.push({
         rel: 'self',
-        href: io.i.uri.complete
+        href: io.i.uri.complete.replace(/[/]$/, '')
       })
     }
 

@@ -1,0 +1,20 @@
+{
+  "describes": {
+    "properties": {
+      "uri": {
+        "properties": {
+          "pathString": {
+            "const": "/"
+          }
+        }
+      }
+    }
+  },
+  "schema": {
+    "links": [{
+      "rel": "related",
+      "href": "../system",
+      "title": "System information"
+    }]
+  }
+}

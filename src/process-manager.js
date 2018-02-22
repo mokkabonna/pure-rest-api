@@ -40,9 +40,16 @@ async function createServer(config) {
           io.i.body = Buffer.concat(body).toString()
           io.i.body = attemptParseBody(io.i, response)
 
+          var route = routes.find(r => ajv.validate(r.test, io.i.uri))
           const endProcess = await createAndPersistProcessInformation(io)
           await setOutputFromStore(io, uri)
-          await handleRequest(io, response)
+
+          if (route) {
+            await handleRoute(io, route, response)
+          } else {
+            await handleNoRoute(io, response, store)
+          }
+
           await endProcess()
         } catch (e) {
           handleNetworkError(e, response)
@@ -80,10 +87,10 @@ async function createServer(config) {
     io.o.statusCode = hasResource ? (resourceData === undefined ? 410 : 200) : 404
 
     const descriptions = dictionary.filter(d => ajv.validate(d.describes, io.i)).map(d => d.schema)
-
+    const links = descriptions.length ? _.compact(_.flatten(descriptions.map(d => d.links))) : []
     io.o.body = {
       data: resourceData,
-      links: descriptions.length ? _.flatten(descriptions.map(d => d.links)) : []
+      links: links
     }
   }
 
@@ -112,16 +119,6 @@ async function createServer(config) {
       new Problem(404, 'No such resource.').send(response)
     }
   }
-
-  async function handleRequest(io, response) {
-    var route = routes.find(r => ajv.validate(r.test, io.i.uri))
-    if (route) {
-      await handleRoute(io, route, response)
-    } else {
-      await handleNoRoute(io, response, store)
-    }
-  }
-
 }
 
 async function handleRoute(io, route, response) {
@@ -150,10 +147,7 @@ async function handleRoute(io, route, response) {
   }
 
   var output = result.body.o
-
-
   response.writeHead(output.statusCode || 200, output.headers)
-
   response.end(JSON.stringify(output.body))
 }
 
@@ -171,7 +165,6 @@ function attemptParseBody(input, response) {
 }
 
 function handleNetworkError(e, response) {
-  response.setHeader('X-Powered-By', 'my library!')
   if (e instanceof Problem) {
     e.send(response)
   } else {
@@ -182,11 +175,11 @@ function handleNetworkError(e, response) {
   }
 }
 
-function createProcessInfoObject() {
+function createProcessInfoObject(io) {
   return {
     startTime: new Date(),
     endTime: null,
-    steps: []
+    i: io.i
   }
 }
 
