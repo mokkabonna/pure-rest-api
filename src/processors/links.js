@@ -4,6 +4,8 @@ var bodyParser = require('body-parser')
 var URI = require('uri-js')
 var got = require('got')
 var _ = require('lodash')
+const Problem = require('api-problem')
+
 
 const app = express()
 app.use(bodyParser.json({
@@ -51,6 +53,16 @@ function redirectToNormalized(io) {
     io.o.headers.location = URI.normalize(io.i.uri.base + io.i.uri.pathString.replace(/[/]$/, '') + io.i.uri.queryString)
   }
 }
+
+app.post('/api-problem-handler', function(req, res) {
+  var prob = new Problem(req.body.o.statusCode)
+  req.body.o.body = prob
+  req.body.o.body.links = [{
+    rel: 'up',
+    href: '../'
+  }]
+  res.send(req.body)
+})
 
 app.get('/hypermedia-enricher', function(req, res) {
   res.send(selfLink)

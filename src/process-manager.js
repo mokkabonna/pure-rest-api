@@ -12,6 +12,7 @@ const Problem = require('api-problem')
 
 const readFile = util.promisify(fs.readFile)
 const isSchema = val => _.isPlainObject(val) || val === true || val === false
+const isJSON = i => /application[/]([^+]+)?json/.test(i.headers['content-type'])
 
 var processStore = new Map()
 var ajv = new Ajv()
@@ -43,7 +44,7 @@ async function createServer(config) {
           io.i.body = attemptParseBody(io.i, response)
 
           var route = routes.find(r => ajv.validate(r.test, io.i))
-          const endProcess = await createAndPersistProcessInformation(io)
+          const process = await createAndPersistProcessInformation(io)
 
           await setOutputFromStore(io, uri)
 
@@ -80,16 +81,24 @@ async function createServer(config) {
         processDefinition = _.find(dictionary, (d, uri) => /processes$/.test(uri))
       }
 
-      await store.set(processUri, processInfo)
+      return {
+        async updateProgress(io) {
 
-      return async function endProcess() {
-        //Update process information
-        processInfo.endTime = new Date()
+          try {
+            await store.set(processUri, processInfo)
+          } catch (e) {
+            throw new Error('Could not store end process information.')
+          }
+        },
+        async terminate() {
+          //Update process information
+          processInfo.endTime = new Date()
 
-        try {
-          await store.set(processUri, processInfo)
-        } catch (e) {
-          throw new Error('Could not store end process information.')
+          try {
+            await store.set(processUri, processInfo)
+          } catch (e) {
+            throw new Error('Could not store end process information.')
+          }
         }
       }
     } catch (e) {
@@ -166,7 +175,7 @@ async function handleRoute(io, route, response) {
   for (let i = 0; i < allSteps.length; i++) {
     try {
       let step = allSteps[i]
-      if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, io.i))) {
+      if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, io))) {
         result = await got.post(step.uri, {
           json: true,
           body: result.body
@@ -183,7 +192,7 @@ async function handleRoute(io, route, response) {
 }
 
 function attemptParseBody(input, response) {
-  if (input.headers['content-type'] === 'application/json') {
+  if (isJSON(input)) {
     try {
       return JSON.parse(input.body)
     } catch (e) {

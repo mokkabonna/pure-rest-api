@@ -10,13 +10,17 @@
   "steps": [{
     "test": {
       "properties": {
-        "uri": {
+        "i": {
           "properties": {
-            "path": {
-              "minItems": 2,
-              "items": true,
-              "additionalItems": {
-                "const": ""
+            "uri": {
+              "properties": {
+                "path": {
+                  "minItems": 2,
+                  "items": true,
+                  "additionalItems": {
+                    "const": ""
+                  }
+                }
               }
             }
           }
@@ -24,6 +28,19 @@
       }
     },
     "uri": "http://localhost:3003/uri-normalizer"
+  }, {
+    "test": {
+      "properties": {
+        "o": {
+          "properties": {
+            "statusCode": {
+              "minimum": 400
+            }
+          }
+        }
+      }
+    },
+    "uri": "http://localhost:3003/api-problem-handler"
   }, {
     "uri": "http://localhost:3003/hypermedia-enricher"
   }]

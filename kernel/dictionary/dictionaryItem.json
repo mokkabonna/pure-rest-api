@@ -1,0 +1,24 @@
+{
+  "noun": {
+    "properties": {
+      "uri": {
+        "properties": {
+          "path": {
+            "minItems": 3,
+            "items": [{
+              "const": "system"
+            }, {
+              "const": "dictionary"
+            }, true, false]
+          }
+        }
+      }
+    }
+  },
+  "schema": {
+    "links": [{
+      "rel": "collection",
+      "href": "/system/dictionary"
+    }]
+  }
+}

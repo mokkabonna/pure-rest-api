@@ -53,3 +53,8 @@
 ## JSON pick npm module
 
 - [ ] Takes a json schema and returns a new object based upon the properties defined in the schema.
+
+
+## Personal agent
+
+- [ ] Create a simple text/plain agent for a human
