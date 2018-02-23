@@ -80,7 +80,8 @@ function hyperAllTheThings(io) {
     if (!selfLinks.length) {
       links.push({
         rel: 'self',
-        href: io.i.uri.complete.replace(/[/]$/, '')
+        href: io.i.uri.complete.replace(/[/]$/, ''),
+        title: 'This resource'
       })
     }
 

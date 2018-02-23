@@ -115,7 +115,8 @@ async function createServer(config) {
       return [
         {
           rel: 'describedBy',
-          href: uri
+          href: uri,
+          title: "A description of this resource"
         }
       ].concat(d.schema.links)
     })))

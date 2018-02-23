@@ -16,9 +16,9 @@
       "href": "../system",
       "title": "System information"
     }, {
-      "rel": "gloassary",
+      "rel": "glossary",
       "href": "/system/dictionary",
-      "title": "All definitions in this domain."
+      "title": "All definitions in this domain"
     }]
   }
 }
