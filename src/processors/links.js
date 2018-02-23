@@ -6,7 +6,9 @@ var got = require('got')
 var _ = require('lodash')
 
 const app = express()
-app.use(bodyParser.json())
+app.use(bodyParser.json({
+  limit: '1mb'
+}))
 
 var linkExpander = {
   data: {

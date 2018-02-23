@@ -44,33 +44,13 @@ async function createServer(config) {
 
           var route = routes.find(r => ajv.validate(r.test, io.i))
           const endProcess = await createAndPersistProcessInformation(io)
-          await setOutputFromStore(io, uri)
 
-          var cached = cache.get(io.i.uri.complete)
-          if (io.i.isSafe && cached) {
-            response.writeHead(cached.o.statusCode, {
-              ...cached.o.headers,
-              age: cached.cachedDate
-            })
-            response.end(await JSON.stringify(cached.o.body))
-          }
+          await setOutputFromStore(io, uri)
 
           if (route) {
             await handleRoute(io, route, response)
           } else {
             await handleNoRoute(io, response, store)
-          }
-
-          if (!io.i.isSafe) {
-            await cache.delete(io.i.uri.complete)
-          } else {
-            let cacheObject = {
-              cachedDate: new Date(),
-              o: io.o
-            }
-
-            cacheObject.o.headers['last-modified'] = new Date()
-            await cache.set(io.i.uri.complete, cacheObject)
           }
 
           await endProcess()
@@ -82,7 +62,7 @@ async function createServer(config) {
   }
 
   async function createAndPersistProcessInformation(io) {
-    const processCollection = io.i.uri.base + `/${config.systemPath}/processes/` + new Date().toISOString().replace(/:\d\d\.\d\d\dZ$/, '')
+    const processCollection = io.i.uri.base + `/${config.systemPath}/processes/` + new Date().toISOString().replace(/\.\d\d\dZ$/, 'Z')
     var processUri = processCollection + '/' + _.uniqueId('process').replace('process', '')
     var processInfo = createProcessInfoObject(io)
 
@@ -226,7 +206,7 @@ function handleNetworkError(e, response) {
 }
 
 function createProcessInfoObject(io) {
-  return {startTime: new Date(), endTime: null, i: io.i}
+  return {startTime: new Date(), endTime: null, io: io}
 }
 
 function initializeServer(store, config) {
