@@ -41,6 +41,7 @@ async function createServer(config) {
     },
     "steps": [
       {
+        targetDuration: 0,
         uri: 'http://localhost:3001/system-handler'
       }, {
         "targetDuration": 10,
