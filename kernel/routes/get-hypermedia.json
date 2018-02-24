@@ -7,6 +7,7 @@
       }
     }
   },
+  "providesMediaTypes": ["text/html"],
   "steps": [{
     "test": {
       "properties": {
@@ -46,5 +47,23 @@
   }, {
     "targetDuration": 10,
     "uri": "http://localhost:3003/hypermedia-enricher"
+  }, {
+    "targetDuration": 10,
+    "test": {
+      "properties": {
+        "i": {
+          "properties": {
+            "headers": {
+              "properties": {
+                "accept": {
+                  "pattern": "text/html"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "uri": "http://localhost:3003/hypermedia-html"
   }]
 }

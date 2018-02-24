@@ -25,29 +25,28 @@ async function createServer(config) {
     "title": "System route",
     "test": {
       "properties": {
+        "method": {
+          "const": "PUT"
+        },
         "uri": {
           "properties": {
             "path": {
               "minItems": 1,
-              "items": [
-                {
-                  "const": config.systemPath
-                }
-              ]
+              "items": [{
+                "const": config.systemPath
+              }]
             }
           }
         }
       }
     },
-    "steps": [
-      {
-        targetDuration: 0,
-        uri: 'http://localhost:3001/system-handler'
-      }, {
-        "targetDuration": 10,
-        "uri": "http://localhost:3003/hypermedia-enricher"
-      }
-    ]
+    "steps": [{
+      targetDuration: 0,
+      uri: 'http://localhost:3001/system-handler'
+    }, {
+      "targetDuration": 10,
+      "uri": "http://localhost:3003/hypermedia-enricher"
+    }]
   }
 
   var storeUri = 'http://martinhansen.io:3100'
@@ -60,7 +59,9 @@ async function createServer(config) {
       if (_.isPlainObject(data)) {
         data = JSON.stringify(data)
       }
-      return got.stream.put(storeUri + '/' + encodeURIComponent(uri), {body: data})
+      return got.stream.put(storeUri + '/' + encodeURIComponent(uri), {
+        body: data
+      })
     }
   }
 
@@ -157,27 +158,24 @@ async function createServer(config) {
     const hasResource = true //await store.has(completeURI)
 
     var stream = store.get(completeURI)
-    var result = await streamToPromise(stream).catch(e => e.response);
-    result = JSON.parse(result.toString()) //TEMP this is just for now, need to support various contentTypes
-    // io.o.statusCode = hasResource
-    //   ? (
-    //     resourceData === undefined
-    //     ? 410
-    //     : 200)
-    //   : 404
+    var result = await streamToPromise(stream).catch(e => e);
+    if (result) {
+      result = JSON.parse(result.toString()) //TEMP this is just for now, need to support various contentTypes
+    } else {
+      result: null
+    }
+
     io.o.statusCode = 200 //TODO reimplement 404/410 etc..
 
     //TODO, this might better if moved out to a processor
     const definitions = _.pickBy(dictionary, d => ajv.validate(d.noun, io.i))
     const links = _.compact(_.flatten(_.map(definitions, (d, uri) => {
       //TODO I link to the whole dictionary now, I should link to the schema only
-      return [
-        {
-          rel: 'describedBy',
-          href: uri,
-          title: "A description of this resource"
-        }
-      ].concat(d.schema.links)
+      return [{
+        rel: 'describedBy',
+        href: uri,
+        title: "A description of this resource"
+      }].concat(d.schema.links)
     })))
 
     io.o.body = {
@@ -193,9 +191,9 @@ async function createServer(config) {
 
     process.setMaxTargetDuration(route.steps.reduce((sum, step) => sum + step.targetDuration, 0))
     process.setMinTargetDuration(route.steps.reduce((sum, step) => sum + (
-      step.test
-      ? 0
-      : step.targetDuration), 0))
+      step.test ?
+      0 :
+      step.targetDuration), 0))
 
     var result = {
       body: io
@@ -213,7 +211,9 @@ async function createServer(config) {
           await process.update(result.body)
         }
       } catch (e) {
-        throw new Problem(500, `Could not process step ${i}`, {httpError: e})
+        throw new Problem(500, `Could not process step ${i}`, {
+          httpError: e
+        })
       }
     }
 
@@ -230,6 +230,12 @@ async function createServer(config) {
           dictionary[io.i.uri.complete] = await streamToPromise(request).then(b => JSON.parse(b.toString()))
         }
 
+        if (io.i.isRouteCall) {
+          routes.push(await streamToPromise(request).then(b => {
+            return JSON.parse(b.toString())
+          }))
+        }
+
         if (hasResource) {
           statusCode = 200
         } else {
@@ -238,9 +244,15 @@ async function createServer(config) {
       }
     }
 
+    //TODO find better location for this
+    output.headers.vary = 'accept'
     response.writeHead(statusCode || 200, output.headers)
-    response.end(JSON.stringify(output.body))
 
+    if (_.isPlainObject(output.body)) {
+      response.end(JSON.stringify(output.body))
+    } else {
+      response.end(output.body)
+    }
   }
 }
 
@@ -271,11 +283,21 @@ function handleNetworkError(e, response) {
 function initializeServer(store, config) {
   var systemPath = `http://${config.manages}/${config.systemPath}`
   return Promise.all([
-    store.set(`http://${config.manages}/`, {title: 'Welcome'}),
-    store.set(systemPath, {title: 'System manager'}),
-    store.set(systemPath + '/processes', {title: 'Process overview'}),
-    store.set(systemPath + '/dictionary', {title: 'System dictionary'}),
-    store.set(systemPath + '/routes', {title: 'Routes'})
+    store.set(`http://${config.manages}/`, {
+      title: 'Welcome'
+    }),
+    store.set(systemPath, {
+      title: 'System manager'
+    }),
+    store.set(systemPath + '/processes', {
+      title: 'Process overview'
+    }),
+    store.set(systemPath + '/dictionary', {
+      title: 'System dictionary'
+    }),
+    store.set(systemPath + '/routes', {
+      title: 'Routes'
+    })
   ])
 }
 

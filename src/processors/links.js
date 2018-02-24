@@ -4,22 +4,25 @@ var bodyParser = require('body-parser')
 var URI = require('uri-js')
 var got = require('got')
 var _ = require('lodash')
+var pug = require('pug')
+var fs = require('fs')
 const Problem = require('api-problem')
 
 const app = express()
-app.use(bodyParser.json({limit: '1mb'}))
+app.use(express.static('public'))
+app.use(bodyParser.json({
+  limit: '1mb'
+}))
 
 var linkExpander = {
   data: {
     title: 'Root link expander',
     description: 'I resolve root URIs and replace them with absolute URIs based on the domain name.'
   },
-  links: [
-    {
-      rel: 'self',
-      href: '/self-link-adder'
-    }
-  ]
+  links: [{
+    rel: 'self',
+    href: '/self-link-adder'
+  }]
 }
 
 var selfLink = {
@@ -27,12 +30,10 @@ var selfLink = {
     title: 'Self link adder',
     description: 'I add self links to resources that does not have them explicitly set.'
   },
-  links: [
-    {
-      rel: 'self',
-      href: '/links-expander'
-    }
-  ]
+  links: [{
+    rel: 'self',
+    href: '/links-expander'
+  }]
 }
 
 app.get('/', function(req, res) {
@@ -57,19 +58,27 @@ app.post('/api-problem-handler', function(req, res) {
   setTimeout(function() {
     var prob = new Problem(req.body.o.statusCode)
     req.body.o.body = prob
-    req.body.o.body.links = [
-      {
-        rel: 'up',
-        href: '../'
-      }
-    ]
+    req.body.o.body.links = [{
+      rel: 'up',
+      href: '../'
+    }]
     res.send(req.body)
   }, 60 * 1000)
 })
 
-app.get('/hypermedia-enricher', function(req, res) {
-  res.send(selfLink)
+app.post('/hypermedia-html', function(req, res) {
+  hyperHTML(req.body).then(function() {
+    res.send(req.body)
+  }).catch(function(err) {
+    res.status(500).send(err)
+  })
 })
+
+async function hyperHTML(io) {
+  var result = pug.render(fs.readFileSync(__dirname + '/hyper/index.pug', 'utf8'), io)
+  io.o.body = result
+  io.o.headers['content-type'] = 'text/html'
+}
 
 app.post('/hypermedia-enricher', function(req, res) {
   hyperAllTheThings(req.body).then(function() {
@@ -79,7 +88,7 @@ app.post('/hypermedia-enricher', function(req, res) {
   })
 })
 
-function hyperAllTheThings(io) {
+async function hyperAllTheThings(io) {
   var links = io.o.body.links
   var viaLinks = links.filter(l => l.rel === 'via')
 
