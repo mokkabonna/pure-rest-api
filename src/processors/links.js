@@ -6,11 +6,8 @@ var got = require('got')
 var _ = require('lodash')
 const Problem = require('api-problem')
 
-
 const app = express()
-app.use(bodyParser.json({
-  limit: '1mb'
-}))
+app.use(bodyParser.json({limit: '1mb'}))
 
 var linkExpander = {
   data: {
@@ -18,10 +15,11 @@ var linkExpander = {
     description: 'I resolve root URIs and replace them with absolute URIs based on the domain name.'
   },
   links: [
-  {
-    rel: 'self',
-    href: '/self-link-adder'
-  }]
+    {
+      rel: 'self',
+      href: '/self-link-adder'
+    }
+  ]
 }
 
 var selfLink = {
@@ -30,10 +28,11 @@ var selfLink = {
     description: 'I add self links to resources that does not have them explicitly set.'
   },
   links: [
-  {
-    rel: 'self',
-    href: '/links-expander'
-  }]
+    {
+      rel: 'self',
+      href: '/links-expander'
+    }
+  ]
 }
 
 app.get('/', function(req, res) {
@@ -55,13 +54,17 @@ function redirectToNormalized(io) {
 }
 
 app.post('/api-problem-handler', function(req, res) {
-  var prob = new Problem(req.body.o.statusCode)
-  req.body.o.body = prob
-  req.body.o.body.links = [{
-    rel: 'up',
-    href: '../'
-  }]
-  res.send(req.body)
+  setTimeout(function() {
+    var prob = new Problem(req.body.o.statusCode)
+    req.body.o.body = prob
+    req.body.o.body.links = [
+      {
+        rel: 'up',
+        href: '../'
+      }
+    ]
+    res.send(req.body)
+  }, 60 * 1000)
 })
 
 app.get('/hypermedia-enricher', function(req, res) {
@@ -109,8 +112,5 @@ function hyperAllTheThings(io) {
     })
   })
 }
-
-
-
 
 module.exports = app

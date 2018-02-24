@@ -27,6 +27,7 @@
         }
       }
     },
+    "targetDuration": 10,
     "uri": "http://localhost:3003/uri-normalizer"
   }, {
     "test": {
@@ -40,8 +41,10 @@
         }
       }
     },
+    "targetDuration": 60000,
     "uri": "http://localhost:3003/api-problem-handler"
   }, {
+    "targetDuration": 10,
     "uri": "http://localhost:3003/hypermedia-enricher"
   }]
 }

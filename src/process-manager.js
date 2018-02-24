@@ -9,6 +9,7 @@ const Ajv = require('ajv')
 const ioUtil = require('./utils/io')
 const Keyv = require('keyv')
 const Problem = require('api-problem')
+const streamToPromise = require('stream-to-promise')
 
 const readFile = util.promisify(fs.readFile)
 const isSchema = val => _.isPlainObject(val) || val === true || val === false
@@ -24,48 +25,54 @@ async function createServer(config) {
   const cache = new Map()
   const dictionary = {}
   var processDefinition
-  const routes = [] // TODO make object
+  const routes = []
 
   await initializeServer(store, config)
 
   return {
     server: http.createServer(async function(request, response) {
-      const body = []
-      const io = ioUtil.createIOObject(request, response)
-      const uri = io.i.uri.complete
+      try {
+        const io = ioUtil.createIOObject(request, response)
 
-      request.on('error', (err) => {
-        console.error(err)
-      }).on('data', (chunk) => {
-        body.push(chunk)
-      }).on('end', async () => {
-        try {
-          io.i.body = Buffer.concat(body).toString()
-          io.i.body = attemptParseBody(io.i, response)
+        console.log(io.i.headers)
 
-          var route = routes.find(r => ajv.validate(r.test, io.i))
-          const process = await createAndPersistProcessInformation(io)
+        const route = routes.find(r => ajv.validate(r.test, io.i))
+        const process = await createAndPersistProcessInformation(io, route)
 
-          await setOutputFromStore(io, uri)
+        await setOutputFromStore(io)
 
-          if (route) {
-            await handleRoute(io, route, response)
-          } else {
-            await handleNoRoute(io, response, store)
-          }
-
-          await endProcess()
-        } catch (e) {
-          handleNetworkError(e, response)
+        if (route) {
+          await handleRoute(io, route, response, process)
+        } else {
+          await handleNoRoute(io, request, response, store)
         }
-      })
+
+        await process.terminate()
+
+      } catch (e) {
+        handleNetworkError(e, response)
+      }
     })
   }
 
-  async function createAndPersistProcessInformation(io) {
+  async function createAndPersistProcessInformation(io, route) {
     const processCollection = io.i.uri.base + `/${config.systemPath}/processes/` + new Date().toISOString().replace(/\.\d\d\dZ$/, 'Z')
     var processUri = processCollection + '/' + _.uniqueId('process').replace('process', '')
-    var processInfo = createProcessInfoObject(io)
+    var processInfo = {
+      startTime: new Date(),
+      maxTargetDuration: 1,
+      minTargetDuration: 1,
+      endTime: null,
+      io: io
+    }
+
+    if (route) {
+      processInfo.maxTargetDuration = route.steps.reduce((sum, step) => sum + step.targetDuration, 0)
+      processInfo.minTargetDuration = route.steps.reduce((sum, step) => sum + (
+        step.test
+        ? 0
+        : step.targetDuration), 0)
+    }
 
     // store process information
     try {
@@ -83,6 +90,8 @@ async function createServer(config) {
 
       return {
         async updateProgress(io) {
+
+          processInfo.io = io
 
           try {
             await store.set(processUri, processInfo)
@@ -107,7 +116,8 @@ async function createServer(config) {
 
   }
 
-  async function setOutputFromStore(io, completeURI) {
+  async function setOutputFromStore(io) {
+    const completeURI = io.i.uri.complete
     const hasResource = await store.has(completeURI)
     const resourceData = await store.get(completeURI)
     io.o.statusCode = hasResource
@@ -137,33 +147,49 @@ async function createServer(config) {
 
   }
 
-  async function handleNoRoute(io, response, store) {
-    var isDictionaryCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'dictionary' && io.i.uri.path.length === 3
-    var isRouteCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'routes' && io.i.uri.path.length === 3
-    // default REST handling
+  async function handleNoRoute(io, request, response, store) {
+    return new Promise(function(resolve, reject) {
+      var isDictionaryCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'dictionary' && io.i.uri.path.length === 3
+      var isRouteCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'routes' && io.i.uri.path.length === 3
+      var body = []
 
-    if (io.i.method === 'PUT') {
-      await store.set(io.i.uri.complete, io.i.body)
-      if (isDictionaryCall) {
-        dictionary[io.i.uri.complete] = io.i.body
-      } else if (isRouteCall) {
-        routes.push(io.i.body)
-      }
-      const wasCreated = io.o.body.data !== undefined
-      response.writeHead(
-        wasCreated
-        ? 201
-        : 204)
-      response.end('PUT successful') //TODO better handling here according to spec
-    } else if (io.i.method === 'GET' && io.o.statusCode === 200) {
-      response.end(JSON.stringify(io.o.body))
-    } else {
-      new Problem(404, 'No such resource.').send(response)
-    }
+      request.on('error', (err) => {
+        console.error(err)
+      }).on('data', (chunk) => {
+        body.push(chunk)
+      }).on('end', async () => {
+        io.i.body = Buffer.concat(body).toString()
+        io.i.body = attemptParseBody(io.i, response)
+
+        if (io.i.method === 'PUT') {
+          await store.set(io.i.uri.complete, io.i.body)
+          if (isDictionaryCall) {
+            dictionary[io.i.uri.complete] = io.i.body
+          } else if (isRouteCall) {
+            routes.push(io.i.body)
+          }
+
+          const wasCreated = io.o.body.data !== undefined
+          response.writeHead(
+            wasCreated
+            ? 201
+            : 204)
+
+          response.end('PUT successful') //TODO better handling here according to spec
+        } else if (io.i.method === 'GET' && io.o.statusCode === 200) {
+          response.end(JSON.stringify(io.o.body))
+        } else {
+          reject(new Problem(404, 'No such resource.'))
+          return
+        }
+
+        resolve()
+      })
+    })
   }
 }
 
-async function handleRoute(io, route, response) {
+async function handleRoute(io, route, response, process) {
   var allSteps = route.steps
 
   var result = {
@@ -180,6 +206,8 @@ async function handleRoute(io, route, response) {
           json: true,
           body: result.body
         })
+
+        await process.updateProgress(result.body)
       }
     } catch (e) {
       throw new Problem(500, `Could not process step ${i}`, {httpError: e})
@@ -213,10 +241,6 @@ function handleNetworkError(e, response) {
       stack: e.stack.split('\n')
     }).send(response)
   }
-}
-
-function createProcessInfoObject(io) {
-  return {startTime: new Date(), endTime: null, io: io}
 }
 
 function initializeServer(store, config) {
