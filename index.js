@@ -1,18 +1,18 @@
 const processManager = require('./src/process-manager')
-const math = require('./src/processors/math')
 const links = require('./src/processors/links')
-const IT = require('./src/processors/initiator-terminator')
+const system = require('./src/processors/system')
 const got = require('./src/got')
 const util = require('util')
 const fs = require('fs')
 const glob = require('glob')
+const chalk = require('chalk')
 const streamToPromise = require('stream-to-promise')
 const Parser = require('stream-json/Parser')
 const parser = new Parser()
 
 const globPromise = util.promisify(glob)
 
-var all = 4
+var all = 3
 var started = 0
 
 var resolvePromise
@@ -21,12 +21,7 @@ var allStarted = new Promise(function(resolve, reject) {
 })
 
 var port = process.env.PORT || 80
-processManager({
-  manages: 'martinhansen.io',
-  systemPath: 'system',
-  mountedAt: 'c:\\users\\marti\\pure-rest-api\\data',
-  persistURI: 'file:///localhost/c:/users/marti/pure-rest-api/data'
-}).then(function(manager) {
+processManager({manages: 'martinhansen.io', systemPath: 'system', mountedAt: 'c:\\users\\marti\\pure-rest-api\\data', persistURI: 'file:///localhost/c:/users/marti/pure-rest-api/data'}).then(function(manager) {
   return manager.server.listen(port, () => {
     console.log('Server listening on port 80!')
     started = started + 1
@@ -35,22 +30,13 @@ processManager({
   })
 })
 
-math.listen(3002, () => {
-  console.log('Math operator listening on port 3002!')
-  started = started + 1
-  if (started === all)
-    resolvePromise()
-})
-
 links.listen(3003, () => {
-  console.log('Links operator listening on port 3003!')
   started = started + 1
   if (started === all)
     resolvePromise()
 })
 
-IT.listen(3001, () => {
-  console.log('IO operator listening on port 3001!')
+system.listen(3001, () => {
   started = started + 1
   if (started === all)
     resolvePromise()
@@ -58,31 +44,45 @@ IT.listen(3001, () => {
 
 var publicUrl = 'http://martinhansen.io'
 
-allStarted.then(function() {
-  return got(publicUrl).then(function(res) {
-    return globPromise('kernel/**/*.json', {
-      nodir: true
-    }).then(function(jsonFiles) {
-      return Promise.all([
-        ...jsonFiles.map(f => {
-          const subPath = /kernel\/([^.]+)/.exec(f)[1]
-          var stream = fs.createReadStream(f).pipe(got.stream.put(publicUrl + '/system/' + subPath))
+var statusCodeColors = {
+  200: 'green'
+}
 
-          return streamToPromise(stream)
-        }),
-      ])
-    })
+function getChalk(code) {
+  if (code >= 200 && code < 300) {
+    return chalk.green
+  } else if (code >= 400 && code < 500) {
+    return chalk.yellow
+  } else if (code >= 500 && code < 600) {
+    return chalk.red
+  } else {
+    return chalk.white
+  }
+}
+
+allStarted.then(function() {
+  return globPromise('kernel/**/*.json', {nodir: true}).then(function(jsonFiles) {
+    return Promise.all([...jsonFiles.map(f => {
+        const subPath = /kernel\/([^.]+)/.exec(f)[1]
+        var uri = publicUrl + '/system/' + subPath
+        var stream = fs.createReadStream(f)
+
+        return streamToPromise(stream).then(function(content) {
+          return got.put(uri, {body: content}).then(function(response) {
+            var code = getChalk(response.statusCode)(response.statusCode)
+            console.log(`${code} PUT ${uri}`)
+          })
+        })
+      })])
   })
+// }).then(function(response) {
+  // return Promise.all(Array.from(new Array(10)).map(function() {
+  //   return got('http://martinhansen.io')
+  // }))
+  // return response
 }).then(function() {
-  console.time('stress-test')
-  return Promise.all(Array.from(new Array(10)).map(function() {
-    return got('http://martinhansen.io')
-  }))
-}).then(function() {
-  console.timeEnd('stress-test')
   console.log('___Server filled___')
 }).catch(function(err) {
-  console.log(err)
   console.log('Could not start servers.')
-  console.log(err.response)
+  console.log(err.response.body)
 })

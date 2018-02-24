@@ -1,5 +1,5 @@
 var got = require('got')
-var cache = require('./cache')
+var cache = new Map()
 
 function newGot(url, options, ...rest) {
   options = options || {

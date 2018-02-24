@@ -21,41 +21,83 @@ var ajv = new Ajv()
 async function createServer(config) {
   config = config || {}
 
-  const store = new Map()
+  var systemRoute = {
+    "title": "System route",
+    "test": {
+      "properties": {
+        "uri": {
+          "properties": {
+            "path": {
+              "minItems": 1,
+              "items": [
+                {
+                  "const": config.systemPath
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "steps": [
+      {
+        uri: 'http://localhost:3001/system-handler'
+      }, {
+        "targetDuration": 10,
+        "uri": "http://localhost:3003/hypermedia-enricher"
+      }
+    ]
+  }
+
+  var storeUri = 'http://martinhansen.io:3100'
+
+  const store = {
+    get: function(uri) {
+      return got.stream.get(storeUri + '/' + encodeURIComponent(uri))
+    },
+    set: function(uri, data) {
+      if (_.isPlainObject(data)) {
+        data = JSON.stringify(data)
+      }
+      return got.stream.put(storeUri + '/' + encodeURIComponent(uri), {body: data})
+    }
+  }
+
   const cache = new Map()
   const dictionary = {}
   var processDefinition
-  const routes = []
+  const routes = [systemRoute]
+  const incomingStreams = {}
+  const outgoingStreams = {}
 
   await initializeServer(store, config)
 
   return {
     server: http.createServer(async function(request, response) {
       try {
-        const io = ioUtil.createIOObject(request, response)
-
-        console.log(io.i.headers)
-
+        const io = ioUtil.createIOObject(request, response, config)
         const route = routes.find(r => ajv.validate(r.test, io.i))
-        const process = await createAndPersistProcessInformation(io, route)
 
-        await setOutputFromStore(io)
+        var process = createProcess(io)
+        process.update(io)
+
+        incomingStreams[io.i.uri.complete] = request
+        outgoingStreams[io.i.uri.complete] = response
 
         if (route) {
-          await handleRoute(io, route, response, process)
+          await handleRoute(io, route, request, response, process)
         } else {
-          await handleNoRoute(io, request, response, store)
+          new Problem(404, 'No such resource.').send(response)
         }
-
-        await process.terminate()
-
       } catch (e) {
         handleNetworkError(e, response)
+      } finally {
+        process.end()
       }
     })
   }
 
-  async function createAndPersistProcessInformation(io, route) {
+  function createProcess(io) {
     const processCollection = io.i.uri.base + `/${config.systemPath}/processes/` + new Date().toISOString().replace(/\.\d\d\dZ$/, 'Z')
     var processUri = processCollection + '/' + _.uniqueId('process').replace('process', '')
     var processInfo = {
@@ -66,66 +108,63 @@ async function createServer(config) {
       io: io
     }
 
-    if (route) {
-      processInfo.maxTargetDuration = route.steps.reduce((sum, step) => sum + step.targetDuration, 0)
-      processInfo.minTargetDuration = route.steps.reduce((sum, step) => sum + (
-        step.test
-        ? 0
-        : step.targetDuration), 0)
-    }
-
     // store process information
-    try {
 
-      if (processDefinition) {
-        var collection = await store.get(processCollection)
-        await store.set(processCollection, (collection || []).concat([processUri]))
-        var hasLink = processDefinition.schema.links.find(l => l.href === processCollection && l.rel === 'item')
-        if (!hasLink) {
-          processDefinition.schema.links.push({rel: 'item', href: processCollection})
+    // if (processDefinition) {
+    //   var collection = await streamToPromise(store.get(processCollection))
+    //   await store.set(processCollection, (collection.toString() || []).concat([processUri]))
+    //   var hasLink = processDefinition.schema.links.find(l => l.href === processCollection && l.rel === 'item')
+    //   if (!hasLink) {
+    //     processDefinition.schema.links.push({rel: 'item', href: processCollection})
+    //   }
+    // } else {
+    //   processDefinition = _.find(dictionary, (d, uri) => /processes$/.test(uri))
+    // }
+
+    return {
+      setMaxTargetDuration(duration) {
+        processInfo.maxTargetDuration = duration
+      },
+      setMinTargetDuration(duration) {
+        processInfo.minTargetDuration = duration
+      },
+      async update(io) {
+
+        processInfo.io = io
+
+        try {
+          await store.set(processUri, processInfo)
+        } catch (e) {
+          throw new Error('Could not update process information.')
         }
-      } else {
-        processDefinition = _.find(dictionary, (d, uri) => /processes$/.test(uri))
-      }
+      },
+      async end() {
+        //Update process information
+        processInfo.endTime = new Date()
 
-      return {
-        async updateProgress(io) {
-
-          processInfo.io = io
-
-          try {
-            await store.set(processUri, processInfo)
-          } catch (e) {
-            throw new Error('Could not store end process information.')
-          }
-        },
-        async terminate() {
-          //Update process information
-          processInfo.endTime = new Date()
-
-          try {
-            await store.set(processUri, processInfo)
-          } catch (e) {
-            throw new Error('Could not store end process information.')
-          }
+        try {
+          await store.set(processUri, processInfo)
+        } catch (e) {
+          throw new Error('Could not store end process information.')
         }
       }
-    } catch (e) {
-      throw new Error('Could not store process information.' + e.message)
     }
-
   }
 
   async function setOutputFromStore(io) {
     const completeURI = io.i.uri.complete
-    const hasResource = await store.has(completeURI)
-    const resourceData = await store.get(completeURI)
-    io.o.statusCode = hasResource
-      ? (
-        resourceData === undefined
-        ? 410
-        : 200)
-      : 404
+    const hasResource = true //await store.has(completeURI)
+
+    var stream = store.get(completeURI)
+    var result = await streamToPromise(stream).catch(e => e.response);
+    result = JSON.parse(result.toString()) //TEMP this is just for now, need to support various contentTypes
+    // io.o.statusCode = hasResource
+    //   ? (
+    //     resourceData === undefined
+    //     ? 410
+    //     : 200)
+    //   : 404
+    io.o.statusCode = 200 //TODO reimplement 404/410 etc..
 
     //TODO, this might better if moved out to a processor
     const definitions = _.pickBy(dictionary, d => ajv.validate(d.noun, io.i))
@@ -141,82 +180,67 @@ async function createServer(config) {
     })))
 
     io.o.body = {
-      data: resourceData,
+      data: result,
       links: links
     }
-
   }
 
-  async function handleNoRoute(io, request, response, store) {
-    return new Promise(function(resolve, reject) {
-      var isDictionaryCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'dictionary' && io.i.uri.path.length === 3
-      var isRouteCall = io.i.uri.path[0] === config.systemPath && io.i.uri.path[1] === 'routes' && io.i.uri.path.length === 3
-      var body = []
+  async function handleRoute(io, route, request, response, process) {
+    var allSteps = route.steps
+    const hasResource = true //await store.has(io.i.uri.complete)
+    await setOutputFromStore(io)
 
-      request.on('error', (err) => {
-        console.error(err)
-      }).on('data', (chunk) => {
-        body.push(chunk)
-      }).on('end', async () => {
-        io.i.body = Buffer.concat(body).toString()
-        io.i.body = attemptParseBody(io.i, response)
+    process.setMaxTargetDuration(route.steps.reduce((sum, step) => sum + step.targetDuration, 0))
+    process.setMinTargetDuration(route.steps.reduce((sum, step) => sum + (
+      step.test
+      ? 0
+      : step.targetDuration), 0))
 
-        if (io.i.method === 'PUT') {
-          await store.set(io.i.uri.complete, io.i.body)
-          if (isDictionaryCall) {
-            dictionary[io.i.uri.complete] = io.i.body
-          } else if (isRouteCall) {
-            routes.push(io.i.body)
-          }
+    var result = {
+      body: io
+    }
 
-          const wasCreated = io.o.body.data !== undefined
-          response.writeHead(
-            wasCreated
-            ? 201
-            : 204)
+    for (let i = 0; i < allSteps.length; i++) {
+      try {
+        let step = allSteps[i]
+        if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, io))) {
+          result = await got.post(step.uri, {
+            json: true,
+            body: result.body
+          })
 
-          response.end('PUT successful') //TODO better handling here according to spec
-        } else if (io.i.method === 'GET' && io.o.statusCode === 200) {
-          response.end(JSON.stringify(io.o.body))
-        } else {
-          reject(new Problem(404, 'No such resource.'))
-          return
+          await process.update(result.body)
+        }
+      } catch (e) {
+        throw new Problem(500, `Could not process step ${i}`, {httpError: e})
+      }
+    }
+
+    var output = result.body.o
+    var statusCode = output.statusCode
+    var isSuccessful = /^2\d\d$/.test(statusCode)
+
+    if (isSuccessful) {
+      //handle idempotent methods here
+      if (io.i.isPUT) {
+        store.set(io.i.uri.complete, request)
+
+        if (io.i.isDictionaryCall) {
+          dictionary[io.i.uri.complete] = await streamToPromise(request).then(b => JSON.parse(b.toString()))
         }
 
-        resolve()
-      })
-    })
-  }
-}
-
-async function handleRoute(io, route, response, process) {
-  var allSteps = route.steps
-
-  var result = {
-    body: io
-  }
-
-  //Execute all steps in order
-  //TODO: enable parallel processing
-  for (let i = 0; i < allSteps.length; i++) {
-    try {
-      let step = allSteps[i]
-      if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, io))) {
-        result = await got.post(step.uri, {
-          json: true,
-          body: result.body
-        })
-
-        await process.updateProgress(result.body)
+        if (hasResource) {
+          statusCode = 200
+        } else {
+          statusCode = 201
+        }
       }
-    } catch (e) {
-      throw new Problem(500, `Could not process step ${i}`, {httpError: e})
     }
-  }
 
-  var output = result.body.o
-  response.writeHead(output.statusCode || 200, output.headers)
-  response.end(JSON.stringify(output.body))
+    response.writeHead(statusCode || 200, output.headers)
+    response.end(JSON.stringify(output.body))
+
+  }
 }
 
 function attemptParseBody(input, response) {
