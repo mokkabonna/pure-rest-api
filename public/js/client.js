@@ -1,19 +1,5 @@
 var app = new Vue({
   el: '#app',
-  /*render(h) {
-    if (!this.json) {
-      return h('div', null, 'loading')
-    }
-
-    var nav = h('nav', null, this.json.links.map(l => {
-      return h('a', {
-        href: l.href
-      }, l.title)
-    }))
-
-
-    return nav
-  },*/
   data() {
     return {
       data: null,

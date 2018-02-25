@@ -3,16 +3,16 @@ html(lang="en")
   head
     title= io
     link(rel="stylesheet" href="http://localhost:3003/css/main.css")
-    script(type="text/javascript" async src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js")
+    script(type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js")
   body
     div#app
       div(v-if="!data") Loading...
       div(v-else)
+        main
+          pre {{JSON.stringify(data.data, null, 2)}}
         nav
           ul
             li(v-for="link in data.links")
               a(:href="link.href" :rel="link.rel") {{link.title || link.href}}
-        main
-          pre {{JSON.stringify(data.data, null, 2)}}
     script(type="text/javascript" src="http://localhost:3003/js/client.js")
     

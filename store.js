@@ -53,7 +53,6 @@ app.get('*', function(req, res) {
   var hasResource = store.has(req.originalUrl)
   if (hasResource && resource !== undefined) {
     res.set('content-type', resource.meta.contentType)
-    res.set('expires', new Date(2018, 4, 1))
     res.send(resource.data)
   } else if (hasResource && resource === undefined) {
     res.status(410).send()
@@ -63,7 +62,8 @@ app.get('*', function(req, res) {
 })
 
 app.put('*', function(req, res) {
-  console.log(req.originalUrl)
+  console.log(decodeURIComponent(req.originalUrl.slice(1)))
+  console.log('http://martinhansen.io:3100' + req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   var resource = req.body
 

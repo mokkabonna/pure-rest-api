@@ -37,6 +37,13 @@ function createGotStream(method) {
   }
 }
 
+//expose errors
+for (var prop in got) {
+  if (got.hasOwnProperty(prop) && /Error$/.test(prop)) {
+    newGot[prop] = got[prop]
+  }
+}
+
 newGot.get = createGot('get')
 newGot.post = createGot('post')
 newGot.put = createGot('put')

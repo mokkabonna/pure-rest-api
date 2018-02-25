@@ -2,7 +2,7 @@
 var express = require('express')
 var bodyParser = require('body-parser')
 var URI = require('uri-js')
-var got = require('got')
+var got = require('../got')
 var _ = require('lodash')
 var pug = require('pug')
 var fs = require('fs')
@@ -10,19 +10,19 @@ const Problem = require('api-problem')
 
 const app = express()
 app.use(express.static('public'))
-app.use(bodyParser.json({
-  limit: '1mb'
-}))
+app.use(bodyParser.json({limit: '1mb'}))
 
 var linkExpander = {
   data: {
     title: 'Root link expander',
     description: 'I resolve root URIs and replace them with absolute URIs based on the domain name.'
   },
-  links: [{
-    rel: 'self',
-    href: '/self-link-adder'
-  }]
+  links: [
+    {
+      rel: 'self',
+      href: '/self-link-adder'
+    }
+  ]
 }
 
 var selfLink = {
@@ -30,10 +30,12 @@ var selfLink = {
     title: 'Self link adder',
     description: 'I add self links to resources that does not have them explicitly set.'
   },
-  links: [{
-    rel: 'self',
-    href: '/links-expander'
-  }]
+  links: [
+    {
+      rel: 'self',
+      href: '/links-expander'
+    }
+  ]
 }
 
 app.get('/', function(req, res) {
@@ -54,17 +56,17 @@ function redirectToNormalized(io) {
   }
 }
 
-app.post('/api-problem-handler', function(req, res) {
-  setTimeout(function() {
-    var prob = new Problem(req.body.o.statusCode)
-    req.body.o.body = prob
-    req.body.o.body.links = [{
-      rel: 'up',
-      href: '../'
-    }]
-    res.send(req.body)
-  }, 60 * 1000)
-})
+// app.post('/api-problem-handler', function(req, res) {
+//   setTimeout(function() {
+//     var prob = new Problem(req.body.o.statusCode)
+//     req.body.o.body = prob
+//     req.body.o.body.links = [{
+//       rel: 'up',
+//       href: '../'
+//     }]
+//     res.send(req.body)
+//   }, 60 * 1000)
+// })
 
 app.post('/hypermedia-html', function(req, res) {
   hyperHTML(req.body).then(function() {
@@ -76,7 +78,12 @@ app.post('/hypermedia-html', function(req, res) {
 
 async function hyperHTML(io) {
   var result = pug.render(fs.readFileSync(__dirname + '/hyper/index.pug', 'utf8'), io)
-  io.o.body = result
+  await got.put(io.i.uri.complete, {
+    headers: {
+      'content-type': 'text/html'
+    },
+    body: result
+  })
   io.o.headers['content-type'] = 'text/html'
 }
 
@@ -89,36 +96,27 @@ app.post('/hypermedia-enricher', function(req, res) {
 })
 
 async function hyperAllTheThings(io) {
-  var links = io.o.body.links
+  var links = io.o.links
   var viaLinks = links.filter(l => l.rel === 'via')
 
-  return Promise.all(viaLinks.map(function(link) {
-    var options = {
-      json: true
-    }
-    return got(link.href, options).then(function(response) {
-      io.sources[link.href] = response.body
+  var selfLinks = links.filter(l => /(^|\s)self(\s|$)/.test(l.rel))
+  if (!selfLinks.length) {
+    links.push({
+      rel: 'self',
+      href: io.i.uri.complete.replace(/[/]$/, ''),
+      title: 'This resource'
     })
-  })).then(function() {
-    var selfLinks = links.filter(l => /(^|\s)self(\s|$)/.test(l.rel))
-    if (!selfLinks.length) {
-      links.push({
-        rel: 'self',
-        href: io.i.uri.complete.replace(/[/]$/, ''),
-        title: 'This resource'
-      })
-    }
+  }
 
-    links.forEach(function(link) {
-      //treat trailing slashes same as without
-      if (link.href[0] === '/') {
-        link.href = (io.i.uri.base + link.href).replace(/[/]$/, '')
-      } else if (link.href.slice(0, 3) === '../') {
-        link.href = URI.resolve(io.i.uri.complete + '/', link.href).replace(/[/]$/, '')
-      } else if (link.href.slice(0, 2) === './') {
-        link.href = URI.resolve(io.i.uri.complete + '/', link.href).replace(/[/]$/, '')
-      }
-    })
+  links.forEach(function(link) {
+    //treat trailing slashes same as without
+    if (link.href[0] === '/') {
+      link.href = (io.i.uri.base + link.href).replace(/[/]$/, '')
+    } else if (link.href.slice(0, 3) === '../') {
+      link.href = URI.resolve(io.i.uri.complete + '/', link.href).replace(/[/]$/, '')
+    } else if (link.href.slice(0, 2) === './') {
+      link.href = URI.resolve(io.i.uri.complete + '/', link.href).replace(/[/]$/, '')
+    }
   })
 }
 

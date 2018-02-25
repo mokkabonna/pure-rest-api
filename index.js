@@ -65,17 +65,15 @@ allStarted.then(function() {
     return Promise.all([...jsonFiles.map(f => {
         const subPath = /kernel\/([^.]+)/.exec(f)[1]
         var uri = publicUrl + '/system/' + subPath
-        var stream = fs.createReadStream(f)
+        var content = fs.readFileSync(f, 'utf8')
 
-        return streamToPromise(stream).then(function(content) {
-          return got.put(uri, {body: content}).then(function(response) {
-            var code = getChalk(response.statusCode)(response.statusCode)
-            console.log(`${code} PUT ${uri}`)
-          })
+        return got.put(uri, {headers: {'content-type': 'application/json'}, body: content}).then(function(response) {
+          var code = getChalk(response.statusCode)(response.statusCode)
+          console.log(`${code} PUT ${uri}`)
         })
       })])
   })
-// }).then(function(response) {
+  // }).then(function(response) {
   // return Promise.all(Array.from(new Array(10)).map(function() {
   //   return got('http://martinhansen.io')
   // }))
@@ -84,5 +82,9 @@ allStarted.then(function() {
   console.log('___Server filled___')
 }).catch(function(err) {
   console.log('Could not start servers.')
-  console.log(err.response.body)
+  try {
+    console.log(JSON.stringify(JSON.parse(err.response.body), null, 2))
+  }catch(e){
+    console.log(err.response.body)
+  }
 })
