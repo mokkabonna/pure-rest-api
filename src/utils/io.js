@@ -3,9 +3,13 @@ var pointer = require('json-pointer')
 var URI = require('uri-js')
 var uuidv4 = require('uuid/v4')
 
-var safeVerbs = ['HEAD', 'GET']
+const safeVerbs = ['HEAD', 'GET', 'OPTIONS', 'TRACE']
+const idempotentVerbs = safeVerbs.concat(['PUT', 'DELETE'])
+const potentiallyCacheableVerbs = ['HEAD', 'GET', 'POST']
 const notEmpty = s => s !== ''
 const isSafe = method => safeVerbs.indexOf(method) !== -1
+const isIdempotent = method => idempotentVerbs.indexOf(method) !== -1
+const isPotentiallyCacheable = method => potentiallyCacheableVerbs.indexOf(method) !== -1
 
 var transformers = {
   number: function(val) {
@@ -30,9 +34,9 @@ function parse(url, parser) {
   return url
 }
 
-function createIOObject(req, res) {
+function createIOObject(req, res, config) {
   var io = {
-    i: createRequestObject(req),
+    i: createRequestObject(req, config),
     o: createResponseObject(res)
   }
 
@@ -43,7 +47,7 @@ function createResponseObject(res) {
   return {headers: {}}
 }
 
-function createRequestObject(req, parsers = [], ajv) {
+function createRequestObject(req, config) {
   var request = Object.create(null)
 
   var hostPort = req.headers.host.split(':')
@@ -79,7 +83,10 @@ function createRequestObject(req, parsers = [], ajv) {
 
   request.headers = req.headers
   request.method = req.method
-  request.isSafe = isSafe(req.method)
+  request['is' + req.method] = true
+  request.isSafe = isSafe(req.method) || undefined //remove if false
+  request.isIdempotent = isIdempotent(req.method) || undefined //remove if false
+  request.isPotentiallyCacheable = isPotentiallyCacheable(req.method) || undefined
   request.uri = uri
 
   request.body = req.body

@@ -21,12 +21,7 @@ var allStarted = new Promise(function(resolve, reject) {
 })
 
 var port = process.env.PORT || 80
-processManager({
-  manages: 'martinhansen.io',
-  systemPath: 'system',
-  mountedAt: 'c:\\users\\marti\\pure-rest-api\\data',
-  persistURI: 'file:///localhost/c:/users/marti/pure-rest-api/data'
-}).then(function(manager) {
+processManager({manages: 'martinhansen.io', systemPath: 'system', mountedAt: 'c:\\users\\marti\\pure-rest-api\\data', persistURI: 'file:///localhost/c:/users/marti/pure-rest-api/data'}).then(function(manager) {
   return manager.server.listen(port, () => {
     console.log('Server listening on port 80!')
     started = started + 1
@@ -59,30 +54,27 @@ IT.listen(3001, () => {
 var publicUrl = 'http://martinhansen.io'
 
 allStarted.then(function() {
-  return got(publicUrl).then(function(res) {
-    return globPromise('kernel/**/*.json', {
-      nodir: true
-    }).then(function(jsonFiles) {
-      return Promise.all([
-        ...jsonFiles.map(f => {
-          const subPath = /kernel\/([^.]+)/.exec(f)[1]
-          var stream = fs.createReadStream(f).pipe(got.stream.put(publicUrl + '/system/' + subPath))
+  return globPromise('kernel/**/*.json', {nodir: true}).then(function(jsonFiles) {
+    return Promise.all([...jsonFiles.map(f => {
+        const subPath = /kernel\/([^.]+)/.exec(f)[1]
+        var stream = fs.createReadStream(f).pipe(got.stream.put(publicUrl + '/system/' + subPath, {
+          headers: {
+            'content-type': 'application/json'
+          }
+        }))
 
-          return streamToPromise(stream)
-        }),
-      ])
-    })
+        return streamToPromise(stream)
+      })])
   })
 }).then(function() {
   console.time('stress-test')
-  return Promise.all(Array.from(new Array(10)).map(function() {
-    return got('http://martinhansen.io')
-  }))
+  // return Promise.all(Array.from(new Array(10)).map(function() {
+  //   return got('http://martinhansen.io')
+  // }))
 }).then(function() {
   console.timeEnd('stress-test')
   console.log('___Server filled___')
 }).catch(function(err) {
-  console.log(err)
   console.log('Could not start servers.')
-  console.log(err.response)
+  console.log(err)
 })

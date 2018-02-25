@@ -8,7 +8,6 @@ This describes the various operations for each http method
 ```python
 createIOObject()
 findRoute()
-calculateRequestPriority()
 
 if noRoute:
   return 404 Not found
@@ -47,8 +46,9 @@ if respondAsync:
 
 elif
   respond()
-
-
-
-
 ```
+
+
+# PUT
+
+Same as above, but we don't set io body, we instead set io.existing
