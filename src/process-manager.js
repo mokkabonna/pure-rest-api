@@ -34,8 +34,6 @@ async function createServer(config) {
       try {
         const io = ioUtil.createIOObject(request, response)
 
-        console.log(io.i.headers)
-
         const route = routes.find(r => ajv.validate(r.test, io.i))
         const process = await createAndPersistProcessInformation(io, route)
 
