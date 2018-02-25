@@ -1,5 +1,6 @@
 const traverse = require('json-schema-traverse')
 var pointer = require('json-pointer')
+var _ = require('lodash')
 var URI = require('uri-js')
 var uuidv4 = require('uuid/v4')
 
@@ -36,10 +37,18 @@ function parse(url, parser) {
 
 function createIOObject(req, res, config) {
   var io = {
+    startTime: new Date(),
+    endTime: null,
+    minTargetDuration: 1,
+    maxTargetDuration: 1,
+    stages: [],
     i: createRequestObject(req, config),
     o: createResponseObject(res)
   }
 
+  var second = new Date().toISOString().replace(/\.\d\d\dZ$/, '').replace(/[^\d]/g, '/')
+  io.selfLink = io.i.uri.base + `/${config.systemPath}/processes/${second}/${_.uniqueId()}`
+  
   return io
 }
 

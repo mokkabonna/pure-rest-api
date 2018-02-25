@@ -80,8 +80,6 @@ async function createServer(config) {
         const io = ioUtil.createIOObject(request, response, config)
         const route = routes.find(r => ajv.validate(r.test, io.i))
 
-        io.processStates = [createProcess()]
-
         if (!route) {
           new Problem(404, 'No such resource.').send(response)
           return
@@ -98,45 +96,67 @@ async function createServer(config) {
     })
   }
 
-  function createProcess(io, config) {
-    var processInfo = {
-      startTime: new Date(),
-      maxTargetDuration: 1,
-      minTargetDuration: 1,
-      endTime: null
+  async function handleRoute(io, route, response, process) {
+    var allSteps = route.steps
+
+    var result = {
+      body: io
     }
 
-    return processInfo
-  }
+    await store.put.json(io.selfLink, io)
 
-}
+    if (io.i.isGET) {
+      io.o.body = await store.get.json(io.selfLink).then(r => r.body)
+    }
 
-async function handleRoute(io, route, response, process) {
-  var allSteps = route.steps
+    //Execute all steps in order
+    //TODO: enable parallel processing
+    for (let i = 0; i < allSteps.length; i++) {
+      try {
+        let step = allSteps[i]
+        let io = result.body
 
-  var result = {
-    body: io
-  }
+        if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, io))) {
+          let stage = {
+            startTime: new Date(),
+            config: step,
+            skipped: false
+          }
 
-  //Execute all steps in order
-  //TODO: enable parallel processing
-  for (let i = 0; i < allSteps.length; i++) {
-    try {
-      let step = allSteps[i]
-      if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, io))) {
-        result = await got.post(step.uri, {
-          json: true,
-          body: result.body
-        })
+          io.stages.push(stage)
+          await store.put.json(io.selfLink, io)
+
+          result = await got.post(step.uri, {
+            json: true,
+            body: result.body
+          })
+
+          stage.responseTime = new Date()
+          stage.isAsync = false // TODO handle async processing
+
+          await store.put.json(io.selfLink, result.body)
+
+        } else {
+          let stage = {
+            startTime: new Date(),
+            config: step,
+            skipped: true
+          }
+
+          io.stages.push(stage)
+          await store.put.json(io.selfLink, io)
+        }
+      } catch (e) {
+        throw new Problem(500, `Could not process step number ${i + 1}`, {httpError: e})
       }
-    } catch (e) {
-      throw new Problem(500, `Could not process step number ${i + 1}`, {httpError: e})
     }
+
+    result.body.endTime = new Date()
+    console.log(result.body.endTime)
+    await store.put.json(io.selfLink, result.body)
+
+    return result.body
   }
-
-  
-
-  return result.body
 }
 
 function handleNetworkError(e, response) {
