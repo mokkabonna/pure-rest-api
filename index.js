@@ -57,13 +57,13 @@ allStarted.then(function() {
   return globPromise('kernel/**/*.json', {nodir: true}).then(function(jsonFiles) {
     return Promise.all([...jsonFiles.map(f => {
         const subPath = /kernel\/([^.]+)/.exec(f)[1]
-        var stream = fs.createReadStream(f).pipe(got.stream.put(publicUrl + '/system/' + subPath, {
+        var content = fs.readFileSync(f, 'utf8')
+        return got.put(publicUrl + '/system/' + subPath, {
           headers: {
             'content-type': 'application/json',
-          }
-        }))
-
-        return streamToPromise(stream)
+          },
+          body: content
+        })
       })])
   })
 }).then(function() {

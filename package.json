@@ -17,6 +17,7 @@
     "debug": "~2.6.9",
     "express": "^4.15.5",
     "express-ajv": "^1.0.3",
+    "format-link-header": "^2.1.0",
     "glob": "^7.1.2",
     "got": "^8.0.3",
     "http-link-header": "^0.8.0",

@@ -18,6 +18,7 @@
   },
   "schema": {
     "type": "object",
+    "required": ["test"],
     "properties": {
       "test": {
         "type": "object"

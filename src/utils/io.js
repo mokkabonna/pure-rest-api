@@ -48,12 +48,31 @@ function createIOObject(req, res, config) {
 
   var second = new Date().toISOString().replace(/\.\d\d\dZ$/, '').replace(/[^\d]/g, '/')
   io.selfLink = io.i.uri.base + `/${config.systemPath}/processes/${second}/${_.uniqueId()}`
-  
+
   return io
 }
 
 function createResponseObject(res) {
-  return {headers: {}}
+  return {statusCode: 200, headers: {}}
+}
+
+function createFromUrl(url) {
+  var parts = URI.parse(url)
+
+  var uri = {
+    ...parts
+  }
+
+  uri.host = uri.host.split('.').reverse()
+  uri.pathString = uri.path
+  uri.port = uri.port || 80
+  uri.path = uri.path.slice(1).split('/')
+  uri.queryString = uri.query
+
+  delete uri.query
+  delete uri.userinfo
+
+  return uri
 }
 
 function createRequestObject(req, config) {
@@ -104,6 +123,6 @@ function createRequestObject(req, config) {
 }
 
 module.exports = {
-  parse: createRequestObject,
+  parseUri: createFromUrl,
   createIOObject
 }

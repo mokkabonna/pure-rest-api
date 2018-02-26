@@ -2,12 +2,18 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const jsonpatch = require('json-patch')
+const URI = require('uri-js')
 const LinkHeader = require('http-link-header')
+const Ajv = require('ajv')
 const _ = require('lodash')
+const IO = require('./src/utils/io')
+const uriTemplates = require('uri-templates')
+const formatLink = require('format-link-header')
 const app = express()
 
+const ajv = new Ajv()
 const fakeStore = {}
-
+const dictionary = {}
 const store = {
   has(key) {
     return fakeStore.hasOwnProperty(key)
@@ -24,7 +30,7 @@ const store = {
   set(key, val, contentType, linkHeader) {
     var obj = {
       headers: {
-        'content-type': contentType || 'application/octet-stream',
+        'content-type': contentType || 'application/octet-stream'
       },
       data: val
     }
@@ -40,6 +46,13 @@ const store = {
   }
 }
 
+function matchesPattern(pattern, uri) {
+  if (!pattern) {
+    return false
+  }
+  return new RegExp(pattern).test(uri)
+}
+
 app.use(bodyParser.json({
   limit: '5mb',
   type: ['application/json-patch+json', 'application/json', 'application/vnd.tbd+json', 'application/vnd.tbd.data+json']
@@ -47,21 +60,48 @@ app.use(bodyParser.json({
 
 app.get('*', function(req, res, next) {
   if (req.url === '/*') {
-    res.send(store.getAllKeys().map(k => req.protocol + '://' + req.get('host') + k))
+    res.send(store.getAllKeys().map(k => req.protocol + '://' + req.get('host') + '/' + encodeURIComponent(k)))
   } else {
     next()
   }
 })
 
 app.get('*', function(req, res) {
-  console.log(req.originalUrl)
-  var resource = store.get(req.originalUrl)
-  var hasResource = store.has(req.originalUrl)
+  var decodedUrl = decodeURIComponent(req.originalUrl.slice(1))
+  var input = {
+    method: 'GET',
+    uri: IO.parseUri(decodedUrl)
+  }
+
+  var resource = store.get(decodedUrl)
+  var hasResource = store.has(decodedUrl)
   if (hasResource && resource !== undefined) {
     _.forEach(resource.headers, function(header, name) {
       res.set(name, header)
     })
     res.set('cache-control', 'immutable')
+
+    const definitions = _.pickBy(dictionary, d => ajv.validate(d.noun, input))
+    const links = _.compact(_.flatten(_.map(definitions, (d, uri) => {
+      //TODO I link to the whole dictionary now, I should maybe link to the schema only
+      return [
+        {
+          rel: 'describedBy',
+          href: uri,
+          title: "A description of this resource"
+        }
+      ].concat(d.schema.links)
+    })))
+
+    links.forEach(l => l.href = URI.resolve(decodedUrl + '/', l.href))
+    var linkHeader = links.reduce(function(all, link) {
+      all[link.rel] = link
+      link.url = link.href
+      delete link.href
+      return all
+    }, {})
+
+    res.set('link', formatLink(linkHeader))
     res.send(resource.data)
   } else if (hasResource && resource === undefined) {
     res.status(410).send()
@@ -71,26 +111,29 @@ app.get('*', function(req, res) {
 })
 
 app.put('*', function(req, res) {
-  // console.log(decodeURIComponent(req.originalUrl.slice(1)))
-  // console.log('http://martinhansen.io:3100' + req.originalUrl)
-  var hasResource = store.has(req.originalUrl)
+  const decodedUrl = decodeURIComponent(req.originalUrl.slice(1))
+  var hasResource = store.has(decodedUrl)
   var resource = req.body
 
   if (req.headers['if-none-match'] === '*' && hasResource) {
     res.status(412).send()
   } else if (hasResource) {
-    store.set(req.originalUrl, resource, req.headers['content-type'], req.headers.link)
+    store.set(decodedUrl, resource, req.headers['content-type'], req.headers.link)
     res.status(204).send()
   } else {
-    store.set(req.originalUrl, resource, req.headers['content-type'], req.headers.link)
+    if (/dictionary\/./.test(decodedUrl)) {
+      dictionary[decodedUrl] = resource
+    }
+    store.set(decodedUrl, resource, req.headers['content-type'], req.headers.link)
     res.status(201).send(resource)
   }
 })
 
 app.delete('*', function(req, res) {
-  var resource = store.get(req.originalUrl)
-  var hasResource = store.has(req.originalUrl)
-  store.clear(req.originalUrl)
+  const decodedUrl = decodeURIComponent(req.originalUrl.slice(1))
+  var resource = store.get(decodedUrl)
+  var hasResource = store.has(decodedUrl)
+  store.clear(decodedUrl)
   if (hasResource && resource !== undefined) {
     res.send(resource)
   } else {

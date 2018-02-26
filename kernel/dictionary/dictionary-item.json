@@ -16,6 +16,7 @@
     }
   },
   "schema": {
+    "required": ["noun", "schema"],
     "links": [{
       "rel": "collection",
       "href": "/system/dictionary"

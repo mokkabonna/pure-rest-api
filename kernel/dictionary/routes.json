@@ -18,6 +18,7 @@
   },
   "schema": {
     "type": "object",
+    "required": ["items"],
     "properties": {
       "items": {
         "type": "array",

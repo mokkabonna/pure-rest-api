@@ -13,6 +13,8 @@ const streamToPromise = require('stream-to-promise')
 
 const readFile = util.promisify(fs.readFile)
 const isSchema = val => _.isPlainObject(val) || val === true || val === false
+const isSuccess = code => code >= 200 && code < 300
+const isDictionarycall = (i, config) => i.uri.path[0] === config.systemPath && i.uri.path[1] === 'dictionary'
 const isJSON = i => /application[/]([^+]+)?json/.test(i.headers['content-type'])
 const isJSONSerializable = v => _.isPlainObject(v) || Array.isArray(v) || v === true || v === false || v === null || _.isString(v) || _.isFinite(v)
 
@@ -64,6 +66,9 @@ async function createServer(config) {
   store.put.json = function(uri, data) {
     return got.put(storeUri + '/' + encodeURIComponent(uri), {
       json: true,
+      headers: {
+        'content-type': 'application/json'
+      },
       body: data
     })
   }
@@ -79,6 +84,12 @@ async function createServer(config) {
       try {
         const io = ioUtil.createIOObject(request, response, config)
         const route = routes.find(r => ajv.validate(r.test, io.i))
+
+        io.i.body = await streamToPromise(request).then(b => b.toString())
+
+        if (isJSON(io.i)) {
+          io.i.body = JSON.parse(io.i.body)
+        }
 
         if (!route) {
           new Problem(404, 'No such resource.').send(response)
@@ -132,6 +143,10 @@ async function createServer(config) {
       } catch (e) {
         throw new Problem(500, `Could not process step number ${i + 1}`, {httpError: e})
       }
+    }
+
+    if (currentIO.i.isPUT && isSuccess(currentIO.o.statusCode)) {
+      await store.put.json(io.i.uri.complete, io.i.body)
     }
 
     if (!result.body.endTime) {

@@ -16,7 +16,9 @@
       }
     }
   },
+  "pattern": "/system/processes$",
   "schema": {
+    "required": ["items"],
     "properties": {
       "items": {
         "type": "array"
