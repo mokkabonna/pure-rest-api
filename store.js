@@ -93,6 +93,8 @@ app.get('*', function(req, res) {
       ].concat(d.schema.links)
     })))
 
+    // TODO investigate resolve best practices, here I force all urls to be "directories"
+    // https://cdivilly.wordpress.com/2014/03/11/why-trailing-slashes-on-uris-are-important/
     links.forEach(l => l.href = URI.resolve(decodedUrl + '/', l.href))
     var linkHeader = links.reduce(function(all, link) {
       all[link.rel] = link
