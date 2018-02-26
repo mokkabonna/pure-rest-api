@@ -37,6 +37,8 @@ function createGotStream(method) {
   }
 }
 
+newGot.cache = cache
+
 newGot.get = createGot('get')
 newGot.post = createGot('post')
 newGot.put = createGot('put')

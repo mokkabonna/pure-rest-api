@@ -98,15 +98,21 @@ async function createServer(config) {
 
   async function handleRoute(io, route, response, process) {
     var allSteps = route.steps
-
+    var hasEndedProcess = false
     var result = {
       body: io
+    }
+
+    if (!allSteps.length) {
+      io.endTime = new Date()
     }
 
     await store.put.json(io.selfLink, io)
 
     if (io.i.isGET || io.i.isHEAD) {
-      io.o.body = await store.get.json(io.selfLink).then(r => r.body)
+      let response = await store.get.json(io.i.uri.complete)
+      io.o.headers = response.headers
+      io.o.body = response.body
     }
 
     let currentIO = io
@@ -128,20 +134,21 @@ async function createServer(config) {
       }
     }
 
-    result.body.endTime = new Date()
-
-    await store.put.json(io.selfLink, result.body)
+    if (!result.body.endTime) {
+      result.body.endTime = new Date()
+      await store.put.json(io.selfLink, result.body)
+    }
 
     return result.body
   }
-  
+
   async function executeStep(io, step) {
     return got.post(step.uri, {
       json: true,
       body: io
     }).then(r => r.body)
   }
-  
+
   async function startStep(io, step, skipped) {
     let stage = {
       startTime: new Date(),
@@ -152,15 +159,15 @@ async function createServer(config) {
     io.stages.push(stage)
     await store.put.json(io.selfLink, io)
   }
-  
+
   async function setStageComplete(io) {
-    var stage = io.stages[io.stages.length - 1] 
+    var stage = io.stages[io.stages.length - 1]
     stage.responseTime = new Date()
     stage.isAsync = false // TODO handle async processing
 
     await store.put.json(io.selfLink, io)
   }
-  
+
 }
 
 function handleNetworkError(e, response) {

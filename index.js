@@ -59,7 +59,7 @@ allStarted.then(function() {
         const subPath = /kernel\/([^.]+)/.exec(f)[1]
         var stream = fs.createReadStream(f).pipe(got.stream.put(publicUrl + '/system/' + subPath, {
           headers: {
-            'content-type': 'application/json'
+            'content-type': 'application/json',
           }
         }))
 

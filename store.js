@@ -1,12 +1,14 @@
 'use strict'
-var express = require('express')
-var bodyParser = require('body-parser')
-var jsonpatch = require('json-patch')
+const express = require('express')
+const bodyParser = require('body-parser')
+const jsonpatch = require('json-patch')
+const LinkHeader = require('http-link-header')
+const _ = require('lodash')
 const app = express()
 
-var fakeStore = {}
+const fakeStore = {}
 
-var store = {
+const store = {
   has(key) {
     return fakeStore.hasOwnProperty(key)
   },
@@ -19,16 +21,19 @@ var store = {
   getAllKeys() {
     return Object.keys(fakeStore)
   },
-  set(key, val, contentType) {
-    fakeStore[key] = {
-      meta: {
-        contentType: contentType || 'application/octet-stream'
+  set(key, val, contentType, linkHeader) {
+    var obj = {
+      headers: {
+        'content-type': contentType || 'application/octet-stream',
       },
-      data: val || {
-        data: null,
-        links: []
-      }
+      data: val
     }
+
+    if (linkHeader) {
+      obj.headers.link = linkHeader
+    }
+
+    fakeStore[key] = obj
   },
   clear(key) {
     fakeStore[key] = undefined
@@ -49,10 +54,14 @@ app.get('*', function(req, res, next) {
 })
 
 app.get('*', function(req, res) {
+  console.log(req.originalUrl)
   var resource = store.get(req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   if (hasResource && resource !== undefined) {
-    res.set('content-type', resource.meta.contentType)
+    _.forEach(resource.headers, function(header, name) {
+      res.set(name, header)
+    })
+    res.set('cache-control', 'immutable')
     res.send(resource.data)
   } else if (hasResource && resource === undefined) {
     res.status(410).send()
@@ -62,18 +71,18 @@ app.get('*', function(req, res) {
 })
 
 app.put('*', function(req, res) {
-  console.log(decodeURIComponent(req.originalUrl.slice(1)))
-  console.log('http://martinhansen.io:3100' + req.originalUrl)
+  // console.log(decodeURIComponent(req.originalUrl.slice(1)))
+  // console.log('http://martinhansen.io:3100' + req.originalUrl)
   var hasResource = store.has(req.originalUrl)
   var resource = req.body
 
   if (req.headers['if-none-match'] === '*' && hasResource) {
     res.status(412).send()
   } else if (hasResource) {
-    store.set(req.originalUrl, resource, req.headers['content-type'])
+    store.set(req.originalUrl, resource, req.headers['content-type'], req.headers.link)
     res.status(204).send()
   } else {
-    store.set(req.originalUrl, resource, req.headers['content-type'])
+    store.set(req.originalUrl, resource, req.headers['content-type'], req.headers.link)
     res.status(201).send(resource)
   }
 })
