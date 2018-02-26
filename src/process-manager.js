@@ -105,46 +105,23 @@ async function createServer(config) {
 
     await store.put.json(io.selfLink, io)
 
-    if (io.i.isGET) {
+    if (io.i.isGET || io.i.isHEAD) {
       io.o.body = await store.get.json(io.selfLink).then(r => r.body)
     }
 
+    let currentIO = io
     //Execute all steps in order
     //TODO: enable parallel processing
     for (let i = 0; i < allSteps.length; i++) {
       try {
         let step = allSteps[i]
-        let io = result.body
 
-        if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, io))) {
-          let stage = {
-            startTime: new Date(),
-            config: step,
-            skipped: false
-          }
-
-          io.stages.push(stage)
-          await store.put.json(io.selfLink, io)
-
-          result = await got.post(step.uri, {
-            json: true,
-            body: result.body
-          })
-
-          stage.responseTime = new Date()
-          stage.isAsync = false // TODO handle async processing
-
-          await store.put.json(io.selfLink, result.body)
-
+        if (!isSchema(step.test) || (isSchema(step.test) && ajv.validate(step.test, currentIO))) {
+          await startStep(currentIO, step)
+          currentIO = await executeStep(io, step)
+          await setStageComplete(result.body)
         } else {
-          let stage = {
-            startTime: new Date(),
-            config: step,
-            skipped: true
-          }
-
-          io.stages.push(stage)
-          await store.put.json(io.selfLink, io)
+          await addStartStep(currentIO, step, true)
         }
       } catch (e) {
         throw new Problem(500, `Could not process step number ${i + 1}`, {httpError: e})
@@ -152,11 +129,38 @@ async function createServer(config) {
     }
 
     result.body.endTime = new Date()
-    console.log(result.body.endTime)
+
     await store.put.json(io.selfLink, result.body)
 
     return result.body
   }
+  
+  async function executeStep(io, step) {
+    return got.post(step.uri, {
+      json: true,
+      body: io
+    }).then(r => r.body)
+  }
+  
+  async function startStep(io, step, skipped) {
+    let stage = {
+      startTime: new Date(),
+      config: step,
+      skipped: skipped || false
+    }
+
+    io.stages.push(stage)
+    await store.put.json(io.selfLink, io)
+  }
+  
+  async function setStageComplete(io) {
+    var stage = io.stages[io.stages.length - 1] 
+    stage.responseTime = new Date()
+    stage.isAsync = false // TODO handle async processing
+
+    await store.put.json(io.selfLink, io)
+  }
+  
 }
 
 function handleNetworkError(e, response) {
