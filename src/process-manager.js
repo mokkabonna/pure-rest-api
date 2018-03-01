@@ -72,6 +72,7 @@ async function createServer(config) {
       body: data
     })
   }
+
   const cache = new Map()
   const dictionary = {}
   var processDefinition
@@ -84,7 +85,6 @@ async function createServer(config) {
       try {
         const io = ioUtil.createIOObject(request, response, config)
         const route = routes.find(r => ajv.validate(r.test, io.i))
-
         io.i.body = await streamToPromise(request).then(b => b.toString())
 
         if (isJSON(io.i)) {
@@ -100,7 +100,6 @@ async function createServer(config) {
 
         response.writeHead(result.o.statusCode || 200, result.o.headers)
         response.end(JSON.stringify(result.o.body))
-
       } catch (e) {
         handleNetworkError(e, response)
       }
