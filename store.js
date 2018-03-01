@@ -82,7 +82,7 @@ app.get('*', function(req, res) {
     res.set('cache-control', 'immutable')
 
     const definitions = _.pickBy(dictionary, d => ajv.validate(d.noun, input))
-    const links = _.compact(_.flatten(_.map(definitions, (d, uri) => {
+    const links = _.flatten(_.map(definitions, (d, uri) => {
       //TODO I link to the whole dictionary now, I should maybe link to the schema only
       return [
         {
@@ -90,12 +90,11 @@ app.get('*', function(req, res) {
           href: uri,
           title: "A description of this resource"
         }
-      ].concat(d.schema.links)
-    })))
+      ]
+    }))
 
     // TODO investigate resolve best practices, here I force all urls to be "directories"
     // https://cdivilly.wordpress.com/2014/03/11/why-trailing-slashes-on-uris-are-important/
-    links.forEach(l => l.href = URI.resolve(decodedUrl + '/', l.href))
     var linkHeader = links.reduce(function(all, link) {
       all[link.rel] = link
       link.url = link.href
