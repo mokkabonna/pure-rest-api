@@ -28,18 +28,31 @@ const store = {
     return Object.keys(fakeStore)
   },
   set(key, val, contentType, linkHeader) {
-    var obj = {
-      headers: {
-        'content-type': contentType || 'application/octet-stream'
-      },
-      data: val
+    const existing = fakeStore[key] || []
+    var obj
+    const sameVariant = existing.find(storeItem => {
+      var h = storeItem.headers
+      return h['content-type'] === contentType
+    })
+
+    if (sameVariant) {
+      sameVariant.data = val
+      obj = sameVariant
+    } else {
+      obj = {
+        headers: {
+          'content-type': contentType || 'application/octet-stream'
+        },
+        data: val
+      }
+      existing.push(obj)
     }
 
     if (linkHeader) {
       obj.headers.link = linkHeader
     }
 
-    fakeStore[key] = obj
+    fakeStore[key] = existing
   },
   clear(key) {
     fakeStore[key] = undefined
@@ -111,10 +124,19 @@ app.get('*', function(req, res) {
   }
 })
 
-app.put('*', function(req, res) {
-  const decodedUrl = decodeURIComponent(req.originalUrl.slice(1))
-  var hasResource = store.has(decodedUrl)
-  var resource = req.body
+const hasKeys = obj => Object.keys(obj).length > 0
+
+app.put('/:type/:uri', function(req, res) {
+  const decodedUrl = decodeURIComponent(req.params.uri)
+  const hasResource = store.has(decodedUrl)
+  const resource = req.body
+
+  const definitions = _.pickBy(dictionary, d => ajv.validate(d.describes, resource))
+
+  if (!hasKeys(definitions) && req.params.type !== 'dictionary') {
+    res.status(400).send('This resource have no description.')
+    return
+  }
 
   if (req.headers['if-none-match'] === '*' && hasResource) {
     res.status(412).send()
@@ -122,7 +144,7 @@ app.put('*', function(req, res) {
     store.set(decodedUrl, resource, req.headers['content-type'], req.headers.link)
     res.status(204).send()
   } else {
-    if (/dictionary\/./.test(decodedUrl)) {
+    if (req.params.type === 'dictionary') {
       dictionary[decodedUrl] = resource
     }
     store.set(decodedUrl, resource, req.headers['content-type'], req.headers.link)
@@ -132,8 +154,8 @@ app.put('*', function(req, res) {
 
 app.delete('*', function(req, res) {
   const decodedUrl = decodeURIComponent(req.originalUrl.slice(1))
-  var resource = store.get(decodedUrl)
-  var hasResource = store.has(decodedUrl)
+  const resource = store.get(decodedUrl)
+  const hasResource = store.has(decodedUrl)
   store.clear(decodedUrl)
   if (hasResource && resource !== undefined) {
     res.send(resource)
@@ -142,6 +164,4 @@ app.delete('*', function(req, res) {
   }
 })
 
-app.listen(3100, function() {
-  console.log('store port @3100')
-})
+module.exports = app
