@@ -6,36 +6,32 @@ const expect = chai.expect
 
 chai.use(chaiHttp)
 
-describe('media type', function() {
+describe('collection', function() {
   var req
   var origReq
   var origin
-  var mediaType
   var server
-  var server2
   beforeEach(function() {
-    origin = requireUncached('../../src/origin-server')
-    mediaType = requireUncached('../../src/media-type')
-    const gateway = requireUncached('../../src/gateway')
+    origin = requireUncached('../../src/store')
+    const collection = requireUncached('../../src/collection')
     server = origin.listen(3340)
-    server2 = gateway.listen(3331)
-    req = chai.request(mediaType)
+    req = chai.request(collection)
   })
 
   afterEach(function() {
     server.close()
-    server2.close()
   })
 
-  describe('PUT', function() {
+  describe('POST', function() {
     it('persists at origin server', function() {
-      return req.put('/foo').send({test:5}).then(function(res) {
+      return req.post('/collections').send({
+        url: '/posts{/id}'
+      }).then(function(res) {
         expect(res).to.have.status(201)
-        return req.get('/foo').then(function(res) {
-          expect(res).to.have.status(200)
-          expect(res.body).to.eql({
-            test: 5
-          })
+        expect(res).to.have.header('location', 'http://127.0.0.1:3340/posts')
+        return req.post('/posts').then(function(res) {
+          expect(res).to.have.status(201)
+          expect(res.text).to.eql('7')
         })
       })
     })

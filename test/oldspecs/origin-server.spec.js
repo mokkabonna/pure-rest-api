@@ -9,7 +9,7 @@ chai.use(chaiHttp)
 describe.only('origin server', function() {
   var req
   beforeEach(function() {
-    const app = requireUncached('../../src/origin-server')
+    const app = requireUncached('../../src/store')
     req = chai.request(app)
   })
 
