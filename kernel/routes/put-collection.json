@@ -11,7 +11,7 @@
             "minItems": 3,
             "maxItems": 3,
             "items": [true, {
-              "const": "processesfsda"
+              "const": "processes"
             }]
           }
         }

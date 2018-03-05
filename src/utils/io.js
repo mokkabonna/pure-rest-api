@@ -47,7 +47,7 @@ function createIOObject(req, res, config) {
   }
 
   var second = new Date().toISOString().replace(/\.\d\d\dZ$/, '').replace(/[^\d]/g, '/')
-  io.selfLink = io.i.uri.base + `/${config.systemPath}/processes/${second}/${_.uniqueId()}`
+  io.selfLink = io.i.uri.base + `/${config.systemPath}/processes/${_.uniqueId()}`
 
   return io
 }

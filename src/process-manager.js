@@ -35,6 +35,9 @@ async function createServer(config) {
               "items": [
                 {
                   "const": config.systemPath
+                },
+                {
+                  enum: ['dictionary', 'processes', '']
                 }
               ]
             }
@@ -48,13 +51,13 @@ async function createServer(config) {
   var storeUri = 'http://martinhansen.io:3100'
 
   const store = {
-    post: function(uri){
+    post: function post(uri) {
       return got.stream.get(storeUri + '/' + encodeURIComponent(uri))
     },
-    get: function(uri) {
+    get: function get(uri) {
       return got.stream.get(storeUri + '/' + encodeURIComponent(uri))
     },
-    put: function(uri, data) {
+    put: function put(uri, data) {
       if (isJSONSerializable(data)) {
         data = JSON.stringify(data)
       }
@@ -62,11 +65,11 @@ async function createServer(config) {
     }
   }
 
-  store.get.json = function(uri) {
-    return got(storeUri + '/' + encodeURIComponent(uri))
+  store.get.json = function get(uri, options) {
+    return got(storeUri + '/' + encodeURIComponent(uri), options)
   }
 
-  store.put.json = function(uri, data) {
+  store.put.json = function put(uri, data) {
     return got.put(storeUri + '/' + encodeURIComponent(uri), {
       json: true,
       headers: {
@@ -76,7 +79,7 @@ async function createServer(config) {
     })
   }
 
-  store.configure = function(uri, data) {
+  store.configure = function configure(uri, data) {
     return got.post(storeUri + '/config/' + encodeURIComponent(uri), {
       json: true,
       headers: {
@@ -94,7 +97,7 @@ async function createServer(config) {
   await initializeServer(store, config)
 
   return {
-    server: http.createServer(async function(request, response) {
+    server: http.createServer(async function handleRequest(request, response) {
       try {
         const io = ioUtil.createIOObject(request, response, config)
         const route = routes.find(r => ajv.validate(r.test, io.i))
@@ -104,6 +107,7 @@ async function createServer(config) {
           io.i.body = JSON.parse(io.i.body)
         }
 
+        console.log()
         if (!route) {
           new Problem(404, 'No such resource.').send(response)
           return
@@ -133,9 +137,16 @@ async function createServer(config) {
     await store.put.json(io.selfLink, io)
 
     if (io.i.isGET || io.i.isHEAD) {
-      let response = await store.get.json(io.i.uri.complete)
-      io.o.headers = response.headers
-      io.o.body = response.body
+      try {
+        let response = await store.get.json(io.i.uri.complete)
+        io.o.headers = response.headers
+        io.o.body = response.body
+      } catch (e) {
+        if (e.statusCode === 404) {
+          io.o.statusCode = 404
+          io.o.body = new Problem(e.statusCode)
+        }
+      }
     }
 
     let currentIO = io
@@ -201,7 +212,6 @@ function handleNetworkError(e, response) {
   if (e instanceof Problem) {
     e.send(response)
   } else {
-    console.log(e.response.body)
     new Problem(500, 'An unexpected error occured.', {
       detail: e.message,
       stack: e.stack.split('\n')
@@ -214,11 +224,11 @@ function initializeServer(store, config) {
 
   return store.configure(config.manages, config).then(function() {
     // return Promise.all([
-      // store.put.json(`http://${config.manages}/`, {title: 'Welcome'}),
-      // store.put.json(systemPath, {title: 'System manager'}),
-      // store.put.json(systemPath + '/processes', {title: 'Process overview'}),
-      // store.put.json(systemPath + '/definitions', {title: 'Resource definitions.'}),
-      // store.put.json(systemPath + '/routes', {title: 'Routes'})
+    // store.put.json(`http://${config.manages}/`, {title: 'Welcome'}),
+    // store.put.json(systemPath, {title: 'System manager'}),
+    // store.put.json(systemPath + '/processes', {title: 'Process overview'}),
+    // store.put.json(systemPath + '/definitions', {title: 'Resource definitions.'}),
+    // store.put.json(systemPath + '/routes', {title: 'Routes'})
     // ])
   })
 }
