@@ -49,22 +49,32 @@ async function createServer(config) {
 
   const store = {
     get: function(uri) {
-      return got.stream.get(storeUri + '/' + encodeURIComponent(uri))
+      return got.stream.get(storeUri + '/resources/' + encodeURIComponent(uri))
     },
     put: function(uri, data) {
       if (isJSONSerializable(data)) {
         data = JSON.stringify(data)
       }
-      return got.stream.put(storeUri + '/' + encodeURIComponent(uri), {body: data})
+      return got.stream.put(storeUri + '/resources/' + encodeURIComponent(uri), {body: data})
     }
   }
 
   store.get.json = function(uri) {
-    return got(storeUri + '/' + encodeURIComponent(uri))
+    return got(storeUri + '/resources/' + encodeURIComponent(uri))
   }
 
   store.put.json = function(uri, data) {
-    return got.put(storeUri + '/' + encodeURIComponent(uri), {
+    return got.put(storeUri + '/resources/' + encodeURIComponent(uri), {
+      json: true,
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: data
+    })
+  }
+
+  store.put.dictionary = function(uri, data) {
+    return got.put(storeUri + '/dictionary/' + encodeURIComponent(uri), {
       json: true,
       headers: {
         'content-type': 'application/json'
@@ -197,6 +207,9 @@ function handleNetworkError(e, response) {
 
 function initializeServer(store, config) {
   var systemPath = `http://${config.manages}/${config.systemPath}`
+
+
+
   return Promise.all([
     store.put.json(`http://${config.manages}/`, {title: 'Welcome'}),
     store.put.json(systemPath, {title: 'System manager'}),

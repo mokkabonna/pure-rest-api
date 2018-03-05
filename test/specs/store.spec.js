@@ -41,11 +41,17 @@ describe('store', function() {
 
   describe('GET', function() {
     beforeEach(function() {
-      return req.put('/dictionary/everything')
+      return req.put('/dictionary/everything').send({
+        describes: true,
+        description: 'everything'
+      })
+    })
+    beforeEach(function() {
+      return req.put('/all/foo')
     })
 
-    it('behaves like this', function() {
-
+    it('gets the item', function() {
+      return req.get('/all/foo')
     })
   })
 })

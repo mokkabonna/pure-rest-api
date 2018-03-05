@@ -21,13 +21,16 @@ var allStarted = new Promise(function(resolve, reject) {
 })
 
 var port = process.env.PORT || 80
-processManager({manages: 'martinhansen.io', systemPath: 'system', mountedAt: 'c:\\users\\marti\\pure-rest-api\\data', persistURI: 'file:///localhost/c:/users/marti/pure-rest-api/data'}).then(function(manager) {
+processManager({manages: 'martinhansen.io', systemPath: 'system'}).then(function(manager) {
   return manager.server.listen(port, () => {
     console.log('Server listening on port 80!')
     started = started + 1
     if (started === all)
       resolvePromise()
   })
+}).catch(function(err) {
+  console.log(err)
+  console.log(err.response.body)
 })
 
 math.listen(3002, () => {

@@ -94,7 +94,7 @@ app.get('*', function(req, res) {
     })
     res.set('cache-control', 'immutable')
 
-    const definitions = _.pickBy(dictionary, d => ajv.validate(d.noun, input))
+    const definitions = _.pickBy(dictionary, d => ajv.validate(d.describes, input))
     const links = _.flatten(_.map(definitions, (d, uri) => {
       //TODO I link to the whole dictionary now, I should maybe link to the schema only
       return [
@@ -164,4 +164,4 @@ app.delete('*', function(req, res) {
   }
 })
 
-module.exports = app
+app.listen(3100)
