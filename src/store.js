@@ -163,6 +163,47 @@ var dictionaryItem = {
   }
 }
 
+var process = {
+  "describes": {
+    "properties": {
+      "uri": {
+        "properties": {
+          "path": {
+            "minItems": 4,
+            "items": [
+              {
+                "const": "system"
+              }, {
+                "const": "processes"
+              },
+              true
+            ]
+          }
+        }
+      }
+    }
+  },
+  "description": {
+    "required": [
+      "startTime", "endTime"
+    ],
+    "properties": {
+      "startTime": {
+        "type": "string"
+      },
+      "endTime": {
+        "type": ["null", "string"]
+      }
+    },
+    "links": [
+      {
+        "rel": "collection",
+        "href": "/system/processes"
+      }
+    ]
+  }
+}
+
 var systemConfiguration = {
   required: ['systemPath'],
   properties: {
@@ -192,14 +233,14 @@ app.put('/:uri', function(req, res) {
     method: 'PUT',
     uri: IO.parseUri(decodedUrl)
   }
-  const definitions = _.pickBy(dictionary, d => ajv.validate(d.describes, io))
 
-  if (!hasKeys(definitions)) {
-    var isDictionaryItem = ajv.validate(dictionaryItem.describes, io)
-    if (!isDictionaryItem) {
-      res.status(400).send('This resource have no description.')
-      return
-    }
+  const definitions = _.pickBy(dictionary, d => ajv.validate(d.describes, io))
+  var isDictionaryItem = ajv.validate(dictionaryItem.describes, io)
+  var isProcess = ajv.validate(process.describes, io)
+
+  if (!hasKeys(definitions) && !isProcess && !isDictionaryItem) {
+    res.status(400).send('This resource have no description.')
+    return
   }
 
   if (req.headers['if-none-match'] === '*' && hasResource) {
@@ -209,7 +250,6 @@ app.put('/:uri', function(req, res) {
     res.status(204).send()
   } else {
     if (isDictionaryItem) {
-      console.log(resource)
       dictionary[decodedUrl] = resource
     }
     store.set(decodedUrl, resource, req.headers['content-type'], req.headers.link)
