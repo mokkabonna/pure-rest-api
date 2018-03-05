@@ -1,5 +1,5 @@
 {
-  "noun": {
+  "describes": {
     "properties": {
       "uri": {
         "properties": {
@@ -14,16 +14,7 @@
       }
     }
   },
-  "describes (alternative syntax, path is required)": {
-    "/i/uri/path": {
-      "maxItems": 1,
-      "minItems": 1,
-      "items": [{
-        "const": "system"
-      }]
-    }
-  },
-  "schema": {
+  "description": {
     "required": ["title"],
     "properties": {
       "title": true

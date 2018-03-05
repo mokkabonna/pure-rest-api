@@ -80,4 +80,5 @@ allStarted.then(function() {
 }).catch(function(err) {
   console.log('Could not start servers.')
   console.log(err)
+  console.log(err.response && err.response.body)
 })

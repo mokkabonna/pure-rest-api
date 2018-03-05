@@ -1,5 +1,5 @@
 {
-  "noun": {
+  "describes": {
     "properties": {
       "uri": {
         "properties": {
@@ -16,7 +16,7 @@
       }
     }
   },
-  "schema": {
+  "description": {
     "type": "object",
     "required": ["test"],
     "properties": {

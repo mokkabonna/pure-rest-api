@@ -1,5 +1,5 @@
 {
-  "noun": {
+  "describes": {
     "properties": {
       "uri": {
         "properties": {
@@ -15,7 +15,7 @@
       }
     }
   },
-  "schema": {
+  "description": {
     "required": ["startTime", "endTime"],
     "properties": {
       "startTime": {

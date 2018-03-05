@@ -1,6 +1,6 @@
 {
-  "noun": {},
-  "schema": {
+  "describes": {},
+  "description": {
     "title": "Everything",
     "description": "Every single item in the system."
   }

@@ -48,23 +48,26 @@ async function createServer(config) {
   var storeUri = 'http://martinhansen.io:3100'
 
   const store = {
+    post: function(uri){
+      return got.stream.get(storeUri + '/' + encodeURIComponent(uri))
+    },
     get: function(uri) {
-      return got.stream.get(storeUri + '/resources/' + encodeURIComponent(uri))
+      return got.stream.get(storeUri + '/' + encodeURIComponent(uri))
     },
     put: function(uri, data) {
       if (isJSONSerializable(data)) {
         data = JSON.stringify(data)
       }
-      return got.stream.put(storeUri + '/resources/' + encodeURIComponent(uri), {body: data})
+      return got.stream.put(storeUri + '/' + encodeURIComponent(uri), {body: data})
     }
   }
 
   store.get.json = function(uri) {
-    return got(storeUri + '/resources/' + encodeURIComponent(uri))
+    return got(storeUri + '/' + encodeURIComponent(uri))
   }
 
   store.put.json = function(uri, data) {
-    return got.put(storeUri + '/resources/' + encodeURIComponent(uri), {
+    return got.put(storeUri + '/' + encodeURIComponent(uri), {
       json: true,
       headers: {
         'content-type': 'application/json'
@@ -73,8 +76,8 @@ async function createServer(config) {
     })
   }
 
-  store.put.dictionary = function(uri, data) {
-    return got.put(storeUri + '/dictionary/' + encodeURIComponent(uri), {
+  store.configure = function(uri, data) {
+    return got.post(storeUri + '/config/' + encodeURIComponent(uri), {
       json: true,
       headers: {
         'content-type': 'application/json'
@@ -198,6 +201,7 @@ function handleNetworkError(e, response) {
   if (e instanceof Problem) {
     e.send(response)
   } else {
+    console.log(e.response.body)
     new Problem(500, 'An unexpected error occured.', {
       detail: e.message,
       stack: e.stack.split('\n')
@@ -208,15 +212,15 @@ function handleNetworkError(e, response) {
 function initializeServer(store, config) {
   var systemPath = `http://${config.manages}/${config.systemPath}`
 
-
-
-  return Promise.all([
-    store.put.json(`http://${config.manages}/`, {title: 'Welcome'}),
-    store.put.json(systemPath, {title: 'System manager'}),
-    store.put.json(systemPath + '/processes', {title: 'Process overview'}),
-    store.put.json(systemPath + '/dictionary', {title: 'System dictionary'}),
-    store.put.json(systemPath + '/routes', {title: 'Routes'})
-  ])
+  return store.configure(config.manages, config).then(function() {
+    // return Promise.all([
+      // store.put.json(`http://${config.manages}/`, {title: 'Welcome'}),
+      // store.put.json(systemPath, {title: 'System manager'}),
+      // store.put.json(systemPath + '/processes', {title: 'Process overview'}),
+      // store.put.json(systemPath + '/definitions', {title: 'Resource definitions.'}),
+      // store.put.json(systemPath + '/routes', {title: 'Routes'})
+    // ])
+  })
 }
 
 module.exports = createServer

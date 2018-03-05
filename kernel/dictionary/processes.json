@@ -1,5 +1,5 @@
 {
-  "noun": {
+  "describes": {
     "properties": {
       "uri": {
         "properties": {
@@ -16,8 +16,7 @@
       }
     }
   },
-  "pattern": "/system/processes$",
-  "schema": {
+  "description": {
     "required": ["items"],
     "properties": {
       "items": {

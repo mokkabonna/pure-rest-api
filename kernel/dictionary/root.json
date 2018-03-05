@@ -1,5 +1,5 @@
 {
-  "noun": {
+  "describes": {
     "properties": {
       "uri": {
         "properties": {
@@ -10,12 +10,7 @@
       }
     }
   },
-  "describes (experimental)": {
-    "/i/uri/pathString": {
-      "const": "/"
-    }
-  },
-  "schema": {
+  "description": {
     "links": [{
       "rel": "related",
       "href": "../system",
